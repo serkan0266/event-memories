@@ -2,179 +2,107 @@
 
 import { useEffect,useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useParams } from "next/navigation";
+import JSZip from "jszip";
 
-export default function EventPage(){
+export default function AdminPage(){
 
-const params = useParams();
-const slug = params.slug as string;
-
-const [event,setEvent] = useState<any>(null);
+const [events,setEvents] = useState<any[]>([]);
 const [uploads,setUploads] = useState<any[]>([]);
-const [name,setName] = useState("");
-const [message,setMessage] = useState("");
-const [file,setFile] = useState<File | null>(null);
-const [viewerIndex,setViewerIndex] = useState<number | null>(null);
-const [progress,setProgress] = useState(0);
-const [access,setAccess] = useState(false);
-const [passwordInput,setPasswordInput] = useState("");
+const [selectedEvent,setSelectedEvent] = useState<any>(null);
+
+const [stats,setStats] = useState({
+events:0,
+uploads:0,
+photos:0,
+videos:0
+});
 
 useEffect(()=>{
+loadEvents();
+loadStats();
+},[]);
 
-loadEvent();
-
-const channel = supabase
-.channel("uploads")
-.on(
-"postgres_changes",
-{
-event:"INSERT",
-schema:"public",
-table:"uploads"
-},
-()=>{
-loadEvent();
-}
-)
-.subscribe();
-
-return()=>{
-supabase.removeChannel(channel);
-};
-
-},[slug]);
-
-async function loadEvent(){
+async function loadEvents(){
 
 const {data} = await supabase
 .from("events")
 .select("*")
-.eq("slug",slug)
-.maybeSingle();
+.order("created_at",{ascending:false});
 
-if(data){
-setEvent(data);
-loadUploads(data.id);
-}
+setEvents(data || []);
 
 }
 
-async function loadUploads(eventId:string){
+async function loadStats(){
+
+const {data:events} = await supabase.from("events").select("*");
+const {data:uploads} = await supabase.from("uploads").select("*");
+
+setStats({
+events:events?.length || 0,
+uploads:uploads?.length || 0,
+photos:uploads?.filter(u=>u.type==="image").length || 0,
+videos:uploads?.filter(u=>u.type==="video").length || 0
+});
+
+}
+
+async function loadUploads(event:any){
+
+setSelectedEvent(event);
 
 const {data} = await supabase
 .from("uploads")
 .select("*")
-.eq("event_id",eventId)
-.order("created_at",{ascending:false});
+.eq("event_id",event.id);
 
 setUploads(data || []);
 
 }
 
-async function upload(){
+async function uploadHeader(e:any){
 
-if(!file || !event) return;
+const file = e.target.files[0];
 
-const filePath = `${event.id}/${Date.now()}-${file.name}`;
+const path = "headers/" + Date.now() + file.name;
 
-const xhr = new XMLHttpRequest();
+await supabase.storage
+.from("event-uploads")
+.upload(path,file);
 
-xhr.upload.addEventListener("progress",(e)=>{
-if(e.lengthComputable){
-const percent = Math.round((e.loaded/e.total)*100);
-setProgress(percent);
-}
-});
-
-const formData = new FormData();
-formData.append("file",file);
-
-xhr.open(
-"POST",
-process.env.NEXT_PUBLIC_SUPABASE_URL +
-"/storage/v1/object/event-uploads/" +
-filePath
-);
-
-xhr.setRequestHeader(
-"Authorization",
-"Bearer " + process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-xhr.onload = async ()=>{
-
-const fileUrl =
+const url =
 process.env.NEXT_PUBLIC_SUPABASE_URL +
 "/storage/v1/object/public/event-uploads/" +
-filePath;
+path;
 
-const type = file.type.startsWith("video") ? "video" : "image";
+await supabase
+.from("events")
+.update({header_image:url})
+.eq("id",selectedEvent.id);
 
-await supabase.from("uploads").insert({
-event_id:event.id,
-name,
-message,
-file_url:fileUrl,
-type
-});
-
-setName("");
-setMessage("");
-setFile(null);
-setProgress(0);
-
-loadUploads(event.id);
-
-};
-
-xhr.send(file);
+loadEvents();
 
 }
 
-const imageCount = uploads.filter(u=>u.type==="image").length;
-const videoCount = uploads.filter(u=>u.type==="video").length;
+async function downloadZip(){
 
-if(!event) return <div style={{padding:40}}>Loading...</div>;
+const zip = new JSZip();
 
-if(event.password && !access){
+for(const item of uploads){
 
-return(
+const res = await fetch(item.file_url);
+const blob = await res.blob();
 
-<div style={{
-background:"#0f172a",
-minHeight:"100vh",
-color:"white",
-display:"flex",
-alignItems:"center",
-justifyContent:"center"
-}}>
+zip.file(item.file_url.split("/").pop(),blob);
 
-<div>
-
-<h2>Event beveiligd</h2>
-
-<input
-placeholder="Voer wachtwoord in"
-onChange={(e)=>setPasswordInput(e.target.value)}
-style={{padding:10}}
-/>
-
-<button
-onClick={()=>{
-if(passwordInput === event.password){
-setAccess(true);
 }
-}}
-style={{marginLeft:10}}
->
-Enter
-</button>
 
-</div>
+const content = await zip.generateAsync({type:"blob"});
 
-</div>
-
-);
+const link = document.createElement("a");
+link.href = URL.createObjectURL(content);
+link.download = selectedEvent.slug + ".zip";
+link.click();
 
 }
 
@@ -184,149 +112,58 @@ return(
 background:"#0f172a",
 minHeight:"100vh",
 color:"#f8fafc",
+padding:40,
 fontFamily:"sans-serif"
 }}>
 
-{/* HERO HEADER */}
-
-<div style={{
-height:320,
-backgroundImage:`url(${event.header_image || "https://images.unsplash.com/photo-1519681393784-d120267933ba"})`,
-backgroundSize:"cover",
-backgroundPosition:"center",
-position:"relative"
-}}>
-
-<div style={{
-position:"absolute",
-inset:0,
-background:"linear-gradient(to bottom,rgba(0,0,0,0.2),rgba(0,0,0,0.8))"
-}}/>
-
-<div style={{
-position:"absolute",
-bottom:30,
-left:30
-}}>
-
-<h1 style={{fontSize:34,fontWeight:700}}>
-{event.name}
+<h1 style={{fontSize:32,fontWeight:700}}>
+Showverhuur Memories Dashboard
 </h1>
 
-<p style={{opacity:0.8}}>
-{imageCount} foto's • {videoCount} video's
-</p>
-
-</div>
-
-</div>
-
-<div style={{maxWidth:900,margin:"auto",padding:20}}>
-
-{/* UPLOAD CARD */}
+{/* ANALYTICS */}
 
 <div style={{
-background:"#1e293b",
-padding:20,
-borderRadius:14,
-marginTop:-40
+display:"grid",
+gridTemplateColumns:"repeat(4,1fr)",
+gap:20,
+marginTop:30
 }}>
 
-<h2>Deel jouw herinnering</h2>
+<Card title="Events" value={stats.events}/>
+<Card title="Uploads" value={stats.uploads}/>
+<Card title="Photos" value={stats.photos}/>
+<Card title="Videos" value={stats.videos}/>
 
-<input
-placeholder="Naam"
-value={name}
-onChange={(e)=>setName(e.target.value)}
-style={{width:"100%",padding:10,marginBottom:10}}
-/>
+</div>
 
-<textarea
-placeholder="Wil je iets delen?"
-value={message}
-onChange={(e)=>setMessage(e.target.value)}
-style={{width:"100%",padding:10,marginBottom:10}}
-/>
+{/* EVENTS */}
 
-<input
-type="file"
-onChange={(e)=>setFile(e.target.files?.[0] || null)}
-/>
-
-<button
-onClick={upload}
-style={{
-marginTop:10,
-background:"#f59e0b",
-padding:"12px 20px",
-borderRadius:8
-}}
->
-Upload
-</button>
-
-{progress>0 &&(
-
-<div style={{marginTop:10}}>
+<h2 style={{marginTop:40}}>Events</h2>
 
 <div style={{
-height:8,
-background:"#334155",
-borderRadius:6
+display:"grid",
+gridTemplateColumns:"repeat(3,1fr)",
+gap:20,
+marginTop:20
 }}>
 
-<div style={{
-width:progress+"%",
-height:8,
-background:"#f59e0b",
-borderRadius:6
-}}/>
-
-</div>
-
-<p style={{fontSize:12}}>Uploading {progress}%</p>
-
-</div>
-
-)}
-
-</div>
-
-{/* MASONRY GALLERY */}
-
-<div style={{
-marginTop:40,
-columnCount:2,
-columnGap:12
-}}>
-
-{uploads.map((item,index)=>(
+{events.map(event=>(
 
 <div
-key={item.id}
+key={event.id}
 style={{
-breakInside:"avoid",
-marginBottom:12,
+background:"#1e293b",
+padding:20,
+borderRadius:12,
 cursor:"pointer"
 }}
-onClick={()=>setViewerIndex(index)}
+onClick={()=>loadUploads(event)}
 >
 
-{item.type==="image" ? (
-
-<img
-src={item.file_url}
-style={{width:"100%",borderRadius:12}}
-/>
-
-):( 
-
-<video
-src={item.file_url}
-style={{width:"100%",borderRadius:12}}
-/>
-
-)}
+<h3>{event.name}</h3>
+<p style={{opacity:0.7}}>
+/event/{event.slug}
+</p>
 
 </div>
 
@@ -334,79 +171,90 @@ style={{width:"100%",borderRadius:12}}
 
 </div>
 
+{/* EVENT DETAIL */}
+
+{selectedEvent && (
+
+<div style={{marginTop:50}}>
+
+<h2>{selectedEvent.name}</h2>
+
+<p style={{opacity:0.7}}>
+/event/{selectedEvent.slug}
+</p>
+
+{/* QR LINK */}
+
+<div style={{marginTop:20}}>
+
+<h3>Event link</h3>
+
+<a
+href={"/event/"+selectedEvent.slug}
+target="_blank"
+style={{color:"#f59e0b"}}
+>
+/event/{selectedEvent.slug}
+</a>
+
 </div>
 
-{/* FULLSCREEN VIEWER */}
+{/* HEADER UPLOAD */}
 
-{viewerIndex!==null &&(
+<div style={{marginTop:20}}>
+
+<h3>Header afbeelding uploaden</h3>
+
+<input type="file" onChange={uploadHeader}/>
+
+</div>
+
+{/* DOWNLOAD */}
+
+<div style={{marginTop:30}}>
+
+<button
+onClick={downloadZip}
+style={{
+padding:"10px 16px",
+background:"#22c55e",
+border:"none",
+borderRadius:8,
+cursor:"pointer"
+}}
+>
+Download ZIP
+</button>
+
+</div>
+
+</div>
+
+)}
+
+</div>
+
+);
+
+}
+
+function Card({title,value}:any){
+
+return(
 
 <div style={{
-position:"fixed",
-inset:0,
-background:"rgba(0,0,0,0.95)",
-display:"flex",
-alignItems:"center",
-justifyContent:"center",
-zIndex:1000
+background:"#1e293b",
+padding:20,
+borderRadius:12
 }}>
 
-<button
-onClick={()=>setViewerIndex(null)}
-style={{
-position:"absolute",
-top:20,
-right:20,
-fontSize:24,
-color:"white"
-}}
->
-✕
-</button>
+<p style={{opacity:0.7}}>
+{title}
+</p>
 
-<button
-onClick={()=>viewerIndex>0 && setViewerIndex(viewerIndex-1)}
-style={{
-position:"absolute",
-left:20,
-fontSize:40,
-color:"white"
-}}
->
-‹
-</button>
-
-{uploads[viewerIndex].type==="image" ? (
-
-<img
-src={uploads[viewerIndex].file_url}
-style={{maxWidth:"90%",maxHeight:"90%"}}
-/>
-
-):( 
-
-<video
-src={uploads[viewerIndex].file_url}
-controls
-style={{maxWidth:"90%",maxHeight:"90%"}}
-/>
-
-)}
-
-<button
-onClick={()=>viewerIndex<uploads.length-1 && setViewerIndex(viewerIndex+1)}
-style={{
-position:"absolute",
-right:20,
-fontSize:40,
-color:"white"
-}}
->
-›
-</button>
-
-</div>
-
-)}
+<h2 style={{fontSize:28,fontWeight:700}}>
+{value}
+</h2>
 
 </div>
 
