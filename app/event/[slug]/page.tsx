@@ -1,245 +1,106 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { useParams } from "next/navigation";
+import { useEffect,useState } from "react"
+import { supabase } from "@/lib/supabase"
 
-export default function EventPage() {
+export default function EventPage({params}:any){
 
-const params = useParams();
-const slug = params?.slug;
+const slug = params.slug
 
-const [event,setEvent] = useState<any>(null);
-const [uploads,setUploads] = useState<any[]>([]);
+const [event,setEvent] = useState<any>(null)
+const [uploads,setUploads] = useState<any[]>([])
 
-const [files,setFiles] = useState<FileList | null>(null);
-const [name,setName] = useState("");
-const [message,setMessage] = useState("");
+const [files,setFiles] = useState<FileList | null>(null)
+const [name,setName] = useState("")
+const [message,setMessage] = useState("")
 
-const [uploading,setUploading] = useState(false);
-const [progress,setProgress] = useState(0);
-
-const [viewer,setViewer] = useState<number | null>(null);
-
-const [touchStart,setTouchStart] = useState<number | null>(null);
-
+const [viewer,setViewer] = useState<number | null>(null)
 
 useEffect(()=>{
+load()
+},[])
 
-if(slug) loadEvent()
+async function load(){
 
-},[slug])
-
-
-async function loadEvent(){
-
-const {data} = await supabase
+const {data:eventData} = await supabase
 .from("events")
 .select("*")
 .eq("slug",slug)
 .single()
 
-setEvent(data)
+setEvent(eventData)
 
-if(data) loadUploads(data.id)
-
-}
-
-
-async function loadUploads(eventId:string){
-
-const {data} = await supabase
+const {data:uploadData} = await supabase
 .from("uploads")
 .select("*")
-.eq("event_id",eventId)
+.eq("event_id",eventData.id)
 .order("created_at",{ascending:false})
 
-setUploads(data || [])
+setUploads(uploadData || [])
 
 }
 
+async function upload(){
 
-async function handleUpload(){
-
-if(!files || !event) return
-
-setUploading(true)
-
-let done = 0
+if(!files) return
 
 for(const file of Array.from(files)){
 
-const path = `${event.id}/${Date.now()}-${file.name}`
+const fileName = `${Date.now()}-${file.name}`
 
-const {error} = await supabase.storage
+await supabase.storage
 .from("uploads")
-.upload(path,file)
+.upload(`media/${fileName}`,file)
 
-if(error){
-console.log(error)
-continue
-}
-
-const {data:publicUrl} = supabase.storage
+const {data} = supabase.storage
 .from("uploads")
-.getPublicUrl(path)
+.getPublicUrl(`media/${fileName}`)
 
 await supabase.from("uploads").insert({
 
 event_id:event.id,
-name:name,
-message:message,
-file_url:publicUrl.publicUrl,
-thumbnail_url:publicUrl.publicUrl,
-type:file.type.startsWith("video") ? "video":"image"
+file_url:data.publicUrl,
+name,
+message,
+type:file.type.startsWith("video") ? "video" : "image"
 
 })
 
-done++
-
-setProgress(Math.round(done/files.length*100))
-
 }
 
-setUploading(false)
 setFiles(null)
-setProgress(0)
-
-loadUploads(event.id)
+load()
 
 }
 
-
-/* REALTIME UPDATES */
-
-useEffect(()=>{
-
-if(!event) return
-
-const channel = supabase
-.channel("uploads-realtime")
-.on(
-"postgres_changes",
-{
-event:"INSERT",
-schema:"public",
-table:"uploads"
-},
-(payload)=>{
-
-if(payload.new.event_id === event.id){
-
-setUploads(prev=>[payload.new,...prev])
-
-}
-
-}
-)
-.subscribe()
-
-return ()=>{
-
-supabase.removeChannel(channel)
-
-}
-
-},[event])
-
-
-/* SWIPE */
-
-function handleTouchStart(e:any){
-
-setTouchStart(e.touches[0].clientX)
-
-}
-
-function handleTouchEnd(e:any){
-
-if(touchStart === null) return
-
-const diff = touchStart - e.changedTouches[0].clientX
-
-if(diff > 50){
-
-next()
-
-}
-
-if(diff < -50){
-
-prev()
-
-}
-
-setTouchStart(null)
-
-}
-
-function next(){
-
-if(viewer === null) return
-
-setViewer((viewer+1)%uploads.length)
-
-}
-
-function prev(){
-
-if(viewer === null) return
-
-setViewer((viewer-1+uploads.length)%uploads.length)
-
-}
-
-
-
-if(!event) return <div style={{padding:40}}>Loading...</div>
-
-const photos = uploads.filter(u=>u.type==="image").length
-const videos = uploads.filter(u=>u.type==="video").length
-
+if(!event) return <div>Loading...</div>
 
 return(
 
-<div style={{background:"#081a2f",minHeight:"100vh",color:"white"}}>
+<div style={{background:"#f5efe6",minHeight:"100vh"}}>
 
+{event.header_image && (
 
-{/* HEADER */}
+<img
+src={event.header_image}
+style={{
+width:"100%",
+height:260,
+objectFit:"cover"
+}}
+/>
+
+)}
+
+<div style={{padding:20}}>
+
+<h1>{event.name}</h1>
 
 <div style={{
-height:200,
-backgroundImage:`url(${event.header_image})`,
-backgroundSize:"cover",
-backgroundPosition:"center",
-position:"relative"
-}}>
-
-<div style={{
-position:"absolute",
-bottom:0,
-left:0,
-right:0,
+background:"white",
 padding:20,
-background:"linear-gradient(transparent,rgba(0,0,0,0.8))"
-}}>
-
-<h1 style={{fontSize:28}}>{event.name}</h1>
-<p>{photos} foto's • {videos} video's</p>
-
-</div>
-
-</div>
-
-
-{/* UPLOAD BOX */}
-
-<div style={{
-maxWidth:700,
-margin:"30px auto",
-background:"#14263e",
-padding:20,
-borderRadius:16
+borderRadius:12,
+marginBottom:20
 }}>
 
 <h3>Deel jouw herinnering</h3>
@@ -248,25 +109,14 @@ borderRadius:16
 placeholder="Naam"
 value={name}
 onChange={e=>setName(e.target.value)}
-style={{
-width:"100%",
-padding:10,
-marginBottom:10,
-borderRadius:6,
-border:"none"
-}}
+style={{padding:10,width:"100%",marginBottom:10}}
 />
 
 <textarea
 placeholder="Wil je iets delen?"
 value={message}
 onChange={e=>setMessage(e.target.value)}
-style={{
-width:"100%",
-padding:10,
-borderRadius:6,
-border:"none"
-}}
+style={{padding:10,width:"100%"}}
 />
 
 <br/><br/>
@@ -280,83 +130,55 @@ onChange={(e)=>setFiles(e.target.files)}
 <br/><br/>
 
 <button
-onClick={handleUpload}
+onClick={upload}
 style={{
 background:"#d4a24c",
+color:"white",
 border:"none",
-padding:"12px 22px",
-borderRadius:8,
-color:"white"
+padding:"10px 20px",
+borderRadius:6
 }}
 >
-
 Upload
-
 </button>
 
-{uploading && (
-
-<div style={{marginTop:15}}>
-
-<div style={{
-height:6,
-background:"#0b1628",
-borderRadius:10
-}}>
-
-<div style={{
-width:`${progress}%`,
-height:6,
-background:"#d4a24c"
-}}/>
-
 </div>
 
-<p style={{fontSize:12}}>
-Upload bezig... sluit deze pagina niet
-</p>
-
-</div>
-
-)}
-
-</div>
-
-
-{/* INSTAGRAM GRID */}
-
 <div style={{
-maxWidth:1200,
-margin:"0 auto",
-padding:10,
 display:"grid",
 gridTemplateColumns:"repeat(3,1fr)",
 gap:6
 }}>
 
-{uploads.map((item,index)=>(
+{uploads.map((u,index)=>(
 
-<div
-key={item.id}
+<div key={u.id}
+style={{aspectRatio:"1"}}
 onClick={()=>setViewer(index)}
-style={{
-cursor:"pointer",
-position:"relative",
-overflow:"hidden",
-borderRadius:6
-}}
 >
 
-{item.type==="video" ? (
+{u.type==="image" ? (
 
-<>
+<img
+src={u.file_url}
+style={{
+width:"100%",
+height:"100%",
+objectFit:"cover"
+}}
+/>
+
+):( 
+
+<div style={{position:"relative",height:"100%"}}>
 
 <video
-src={item.file_url}
-preload="metadata"
-muted
-playsInline
-style={{width:"100%",height:120,objectFit:"cover"}}
+src={u.file_url}
+style={{
+width:"100%",
+height:"100%",
+objectFit:"cover"
+}}
 />
 
 <div style={{
@@ -370,14 +192,7 @@ color:"white"
 ▶
 </div>
 
-</>
-
-):(
-
-<img
-src={item.file_url}
-style={{width:"100%",height:120,objectFit:"cover"}}
-/>
+</div>
 
 )}
 
@@ -387,8 +202,7 @@ style={{width:"100%",height:120,objectFit:"cover"}}
 
 </div>
 
-
-{/* FULLSCREEN VIEWER */}
+</div>
 
 {viewer!==null && (
 
@@ -397,50 +211,44 @@ style={{
 position:"fixed",
 top:0,
 left:0,
-right:0,
-bottom:0,
-background:"black",
+width:"100%",
+height:"100%",
+background:"rgba(0,0,0,0.95)",
 display:"flex",
 alignItems:"center",
 justifyContent:"center",
 zIndex:999
 }}
-
-onTouchStart={handleTouchStart}
-onTouchEnd={handleTouchEnd}
-
 >
 
 <button
 onClick={()=>setViewer(null)}
 style={{
 position:"absolute",
-top:20,
-right:20,
+top:30,
+right:30,
 fontSize:30,
-background:"none",
-border:"none",
 color:"white",
-cursor:"pointer"
+background:"none",
+border:"none"
 }}
 >
 ✕
 </button>
 
-
-{uploads[viewer].type==="video" ? (
-
-<video
-src={uploads[viewer].file_url}
-autoPlay
-controls
-style={{maxWidth:"90%",maxHeight:"90%"}}
-/>
-
-):(
+{uploads[viewer].type==="image" ? (
 
 <img
 src={uploads[viewer].file_url}
+style={{maxWidth:"90%",maxHeight:"90%"}}
+/>
+
+):( 
+
+<video
+src={uploads[viewer].file_url}
+controls
+autoPlay
 style={{maxWidth:"90%",maxHeight:"90%"}}
 />
 

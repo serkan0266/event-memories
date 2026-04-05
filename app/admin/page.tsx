@@ -1,11 +1,13 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect,useState } from "react"
+import { supabase } from "@/lib/supabase"
+import JSZip from "jszip"
+import { saveAs } from "file-saver"
 
 export default function AdminPage(){
 
-const [allowed,setAllowed] = useState(false)
+const [access,setAccess] = useState(false)
 const [code,setCode] = useState("")
 
 const [events,setEvents] = useState<any[]>([])
@@ -16,10 +18,10 @@ const [slug,setSlug] = useState("")
 
 useEffect(()=>{
 
-const saved = localStorage.getItem("admin_access")
+const saved = localStorage.getItem("admin")
 
 if(saved==="true"){
-setAllowed(true)
+setAccess(true)
 loadData()
 }
 
@@ -44,22 +46,22 @@ setUploads(uploadsData || [])
 function login(){
 
 if(code==="66"){
-localStorage.setItem("admin_access","true")
-setAllowed(true)
+localStorage.setItem("admin","true")
+setAccess(true)
 loadData()
 }else{
-alert("Verkeerde code")
+alert("verkeerde code")
 }
 
 }
 
 async function createEvent(){
 
+if(!name || !slug) return alert("vul alles in")
+
 await supabase.from("events").insert({
-
-name:name,
-slug:slug
-
+name,
+slug
 })
 
 setName("")
@@ -71,7 +73,7 @@ loadData()
 
 async function deleteEvent(id:string){
 
-if(!confirm("Event verwijderen?")) return
+if(!confirm("event verwijderen?")) return
 
 await supabase.from("events").delete().eq("id",id)
 
@@ -85,43 +87,55 @@ const file = e.target.files[0]
 
 if(!file) return
 
-const path = `headers/${Date.now()}-${file.name}`
+alert("uploaden...")
 
-await supabase.storage
+const fileName = `${Date.now()}-${file.name}`
+
+const {error} = await supabase.storage
 .from("uploads")
-.upload(path,file)
+.upload(`headers/${fileName}`,file)
+
+if(error){
+alert("upload fout")
+return
+}
 
 const {data} = supabase.storage
 .from("uploads")
-.getPublicUrl(path)
+.getPublicUrl(`headers/${fileName}`)
 
-await supabase
-.from("events")
+await supabase.from("events")
 .update({header_image:data.publicUrl})
 .eq("id",eventId)
+
+alert("header geupload")
 
 loadData()
 
 }
 
-function downloadZip(eventId:string){
+async function downloadZip(eventId:string){
 
-const files = uploads
-.filter(u=>u.event_id===eventId)
-.map(u=>u.file_url)
+const zip = new JSZip()
 
-files.forEach(url=>{
+const files = uploads.filter(u=>u.event_id===eventId)
 
-const a=document.createElement("a")
-a.href=url
-a.download=""
-a.click()
+for(const file of files){
 
-})
+const res = await fetch(file.file_url)
+const blob = await res.blob()
+
+zip.file(file.file_url.split("/").pop(),blob)
 
 }
 
-if(!allowed){
+const content = await zip.generateAsync({type:"blob"})
+
+saveAs(content,"event-media.zip")
+
+}
+
+if(!access){
 
 return(
 
@@ -140,11 +154,11 @@ borderRadius:12,
 boxShadow:"0 10px 30px rgba(0,0,0,0.1)"
 }}>
 
-<h2>Admin toegang</h2>
+<h2>Admin login</h2>
 
 <input
 type="password"
-placeholder="Code"
+placeholder="code"
 value={code}
 onChange={e=>setCode(e.target.value)}
 style={{padding:10}}
@@ -156,9 +170,9 @@ style={{padding:10}}
 onClick={login}
 style={{
 background:"#d4a24c",
+color:"white",
 border:"none",
 padding:"10px 20px",
-color:"white",
 borderRadius:6
 }}
 >
@@ -181,10 +195,7 @@ minHeight:"100vh",
 padding:40
 }}>
 
-<h1 style={{marginBottom:30}}>Memories Admin</h1>
-
-
-{/* CREATE EVENT */}
+<h1>Memories Admin</h1>
 
 <div style={{
 background:"white",
@@ -213,9 +224,9 @@ style={{padding:10,marginRight:10}}
 onClick={createEvent}
 style={{
 background:"#d4a24c",
+color:"white",
 border:"none",
 padding:"10px 20px",
-color:"white",
 borderRadius:6
 }}
 >
@@ -223,9 +234,6 @@ Maak event
 </button>
 
 </div>
-
-
-{/* EVENTS */}
 
 <div style={{
 display:"grid",
@@ -242,13 +250,11 @@ const videos = eventUploads.filter(u=>u.type==="video").length
 
 return(
 
-<div
-key={event.id}
+<div key={event.id}
 style={{
 background:"white",
 padding:20,
-borderRadius:12,
-boxShadow:"0 10px 20px rgba(0,0,0,0.05)"
+borderRadius:12
 }}
 >
 
@@ -256,21 +262,14 @@ boxShadow:"0 10px 20px rgba(0,0,0,0.05)"
 
 <p>/event/{event.slug}</p>
 
-<p>
-📷 {photos} foto's  
-🎥 {videos} video's
-</p>
+<p>📷 {photos} foto's</p>
+<p>🎥 {videos} video's</p>
 
-<a
-href={`/event/${event.slug}`}
-target="_blank"
->
+<a href={`/event/${event.slug}`} target="_blank">
 Open event
 </a>
 
 <br/><br/>
-
-{/* QR */}
 
 <img
 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://memories.showverhuur.nl/event/${event.slug}`}
@@ -278,12 +277,7 @@ src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://memo
 
 <br/><br/>
 
-{/* HEADER UPLOAD */}
-
-<input
-type="file"
-onChange={(e)=>uploadHeader(e,event.id)}
-/>
+<input type="file" onChange={(e)=>uploadHeader(e,event.id)} />
 
 <br/><br/>
 
@@ -291,13 +285,13 @@ onChange={(e)=>uploadHeader(e,event.id)}
 onClick={()=>downloadZip(event.id)}
 style={{
 background:"#d4a24c",
+color:"white",
 border:"none",
 padding:"8px 14px",
-color:"white",
 borderRadius:6
 }}
 >
-Download alle media
+Download ZIP
 </button>
 
 <br/><br/>
@@ -306,13 +300,13 @@ Download alle media
 onClick={()=>deleteEvent(event.id)}
 style={{
 background:"red",
+color:"white",
 border:"none",
 padding:"8px 14px",
-color:"white",
 borderRadius:6
 }}
 >
-Verwijder event
+Verwijder
 </button>
 
 </div>
