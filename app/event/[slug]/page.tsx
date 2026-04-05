@@ -15,30 +15,10 @@ const [name,setName] = useState("");
 const [message,setMessage] = useState("");
 const [files,setFiles] = useState<File[]>([]);
 const [progress,setProgress] = useState(0);
-const [viewer,setViewer] = useState<number | null>(null);
 
 useEffect(()=>{
 
 loadEvent();
-
-const channel = supabase
-.channel("uploads")
-.on(
-"postgres_changes",
-{
-event:"INSERT",
-schema:"public",
-table:"uploads"
-},
-()=>{
-loadEvent();
-}
-)
-.subscribe();
-
-return()=>{
-supabase.removeChannel(channel);
-};
 
 },[slug]);
 
@@ -77,16 +57,16 @@ let uploaded = 0;
 
 for(const file of files){
 
-const filePath = `${event.id}/${Date.now()}-${file.name}`;
+const path = `${event.id}/${Date.now()}-${file.name}`;
 
 await supabase.storage
 .from("event-uploads")
-.upload(filePath,file);
+.upload(path,file);
 
-const fileUrl =
+const url =
 process.env.NEXT_PUBLIC_SUPABASE_URL +
 "/storage/v1/object/public/event-uploads/" +
-filePath;
+path;
 
 const type = file.type.startsWith("video") ? "video" : "image";
 
@@ -94,44 +74,40 @@ await supabase.from("uploads").insert({
 event_id:event.id,
 name,
 message,
-file_url:fileUrl,
+file_url:url,
 type
 });
 
 uploaded++;
-
 setProgress(Math.round((uploaded/files.length)*100));
 
 }
 
 setFiles([]);
-setName("");
-setMessage("");
 setProgress(0);
-
 loadUploads(event.id);
 
 }
 
-const imageCount = uploads.filter(u=>u.type==="image").length;
-const videoCount = uploads.filter(u=>u.type==="video").length;
+if(!event) return <div>Loading...</div>;
 
-if(!event) return <div style={{padding:40}}>Loading...</div>;
+const header =
+event.header_image ||
+"https://images.unsplash.com/photo-1511285560929-80b456fea0bc";
 
 return(
 
 <div style={{
-background:"#0f172a",
+background:"#F5F1E9",
 minHeight:"100vh",
-color:"#f8fafc",
-fontFamily:"sans-serif"
+fontFamily:"Inter"
 }}>
 
-{/* HEADER */}
+{/* HERO */}
 
 <div style={{
-height:300,
-backgroundImage:`url(${event.header_image || "https://images.unsplash.com/photo-1519681393784-d120267933ba"})`,
+height:420,
+backgroundImage:`url(${header})`,
 backgroundSize:"cover",
 backgroundPosition:"center",
 position:"relative"
@@ -140,122 +116,129 @@ position:"relative"
 <div style={{
 position:"absolute",
 inset:0,
-background:"linear-gradient(to bottom,rgba(0,0,0,0.2),rgba(0,0,0,0.8))"
+background:"linear-gradient(to bottom,rgba(0,0,0,0.2),rgba(0,0,0,0.6))"
 }}/>
 
 <div style={{
 position:"absolute",
-bottom:20,
-left:20
+bottom:40,
+left:"10%",
+color:"white"
 }}>
 
-<h1 style={{fontSize:32,fontWeight:700}}>
+<h1 style={{
+fontSize:40,
+fontWeight:700
+}}>
 {event.name}
 </h1>
 
-<p>
-{imageCount} foto's • {videoCount} video's
+<p style={{opacity:0.9}}>
+{uploads.length} herinneringen gedeeld
 </p>
 
 </div>
 
 </div>
 
-<div style={{maxWidth:1100,margin:"auto",padding:20}}>
-
-{/* UPLOAD */}
+{/* CONTENT */}
 
 <div style={{
-background:"#1e293b",
-padding:20,
-borderRadius:12,
-marginTop:-40
+maxWidth:1100,
+margin:"auto",
+padding:"60px 20px"
 }}>
 
-<h2>Deel jouw herinnering</h2>
+{/* UPLOAD CARD */}
+
+<div style={{
+background:"white",
+borderRadius:16,
+padding:30,
+boxShadow:"0 10px 30px rgba(0,0,0,0.08)"
+}}>
+
+<h2 style={{marginBottom:20}}>
+Deel jullie herinnering
+</h2>
 
 <input
 placeholder="Naam"
 value={name}
 onChange={(e)=>setName(e.target.value)}
-style={{width:"100%",padding:10,marginBottom:10}}
+style={{
+width:"100%",
+padding:12,
+border:"1px solid #ddd",
+borderRadius:8,
+marginBottom:10
+}}
 />
 
 <textarea
 placeholder="Wil je iets delen?"
 value={message}
 onChange={(e)=>setMessage(e.target.value)}
-style={{width:"100%",padding:10,marginBottom:10}}
+style={{
+width:"100%",
+padding:12,
+border:"1px solid #ddd",
+borderRadius:8,
+marginBottom:10
+}}
 />
 
 <input
 type="file"
 multiple
 onChange={(e)=>setFiles(Array.from(e.target.files || []))}
-style={{marginBottom:10}}
+style={{marginBottom:20}}
 />
 
 <button
 onClick={upload}
 style={{
-background:"#f59e0b",
-padding:"12px 20px",
+background:"#C8A46A",
+color:"white",
+padding:"14px 28px",
 borderRadius:8,
-border:"none"
+border:"none",
+fontWeight:600,
+cursor:"pointer"
 }}
 >
-Upload
+Upload herinnering
 </button>
 
 {progress>0 &&(
 
-<div style={{marginTop:10}}>
-
-<div style={{
-height:8,
-background:"#334155",
-borderRadius:6
-}}>
-
-<div style={{
-width:progress+"%",
-height:8,
-background:"#f59e0b",
-borderRadius:6
-}}/>
-
-</div>
-
-<p style={{fontSize:12}}>
+<div style={{marginTop:20}}>
 Uploading {progress}%
-</p>
-
 </div>
 
 )}
 
 </div>
 
-{/* INSTAGRAM STYLE GALLERY */}
+{/* GALLERY */}
 
 <div style={{
-marginTop:40,
-columns:"3 250px",
-columnGap:"14px"
+marginTop:50,
+columns:"3 280px",
+columnGap:"16px"
 }}>
 
-{uploads.map((item,index)=>(
+{uploads.map(item=>(
 
 <div
 key={item.id}
 style={{
-marginBottom:14,
 breakInside:"avoid",
-cursor:"pointer",
-borderRadius:12,
-overflow:"hidden"
+marginBottom:16,
+borderRadius:14,
+overflow:"hidden",
+boxShadow:"0 10px 25px rgba(0,0,0,0.1)"
 }}
-onClick={()=>setViewer(index)}
 >
 
 {item.type==="image" ? (
@@ -272,6 +255,7 @@ display:"block"
 
 <video
 src={item.file_url}
+controls
 style={{
 width:"100%"
 }}
@@ -286,78 +270,6 @@ width:"100%"
 </div>
 
 </div>
-
-{/* FULLSCREEN VIEWER */}
-
-{viewer!==null &&(
-
-<div style={{
-position:"fixed",
-inset:0,
-background:"rgba(0,0,0,0.95)",
-display:"flex",
-alignItems:"center",
-justifyContent:"center",
-zIndex:1000
-}}>
-
-<button
-onClick={()=>setViewer(null)}
-style={{
-position:"absolute",
-top:20,
-right:20,
-fontSize:24,
-color:"white"
-}}
->
-✕
-</button>
-
-<button
-onClick={()=>viewer>0 && setViewer(viewer-1)}
-style={{
-position:"absolute",
-left:20,
-fontSize:40,
-color:"white"
-}}
->
-‹
-</button>
-
-{uploads[viewer].type==="image" ? (
-
-<img
-src={uploads[viewer].file_url}
-style={{maxWidth:"90%",maxHeight:"90%"}}
-/>
-
-):( 
-
-<video
-src={uploads[viewer].file_url}
-controls
-style={{maxWidth:"90%",maxHeight:"90%"}}
-/>
-
-)}
-
-<button
-onClick={()=>viewer<uploads.length-1 && setViewer(viewer+1)}
-style={{
-position:"absolute",
-right:20,
-fontSize:40,
-color:"white"
-}}
->
-›
-</button>
-
-</div>
-
-)}
 
 </div>
 
