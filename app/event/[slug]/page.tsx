@@ -6,20 +6,23 @@ import { useParams } from "next/navigation";
 
 export default function EventPage() {
 
-const params = useParams()
-const slug = params?.slug
+const params = useParams();
+const slug = params?.slug;
 
-const [event,setEvent] = useState<any>(null)
-const [uploads,setUploads] = useState<any[]>([])
+const [event,setEvent] = useState<any>(null);
+const [uploads,setUploads] = useState<any[]>([]);
 
-const [files,setFiles] = useState<FileList | null>(null)
-const [name,setName] = useState("")
-const [message,setMessage] = useState("")
+const [files,setFiles] = useState<FileList | null>(null);
+const [name,setName] = useState("");
+const [message,setMessage] = useState("");
 
-const [uploading,setUploading] = useState(false)
-const [progress,setProgress] = useState(0)
+const [uploading,setUploading] = useState(false);
+const [progress,setProgress] = useState(0);
 
-const [viewer,setViewer] = useState<number | null>(null)
+const [viewer,setViewer] = useState<number | null>(null);
+
+const [touchStart,setTouchStart] = useState<number | null>(null);
+
 
 useEffect(()=>{
 
@@ -93,6 +96,7 @@ type:file.type.startsWith("video") ? "video":"image"
 })
 
 done++
+
 setProgress(Math.round(done/files.length*100))
 
 }
@@ -106,8 +110,91 @@ loadUploads(event.id)
 }
 
 
-if(!event) return <div style={{padding:40}}>Loading...</div>
+/* REALTIME UPDATES */
 
+useEffect(()=>{
+
+if(!event) return
+
+const channel = supabase
+.channel("uploads-realtime")
+.on(
+"postgres_changes",
+{
+event:"INSERT",
+schema:"public",
+table:"uploads"
+},
+(payload)=>{
+
+if(payload.new.event_id === event.id){
+
+setUploads(prev=>[payload.new,...prev])
+
+}
+
+}
+)
+.subscribe()
+
+return ()=>{
+
+supabase.removeChannel(channel)
+
+}
+
+},[event])
+
+
+/* SWIPE */
+
+function handleTouchStart(e:any){
+
+setTouchStart(e.touches[0].clientX)
+
+}
+
+function handleTouchEnd(e:any){
+
+if(touchStart === null) return
+
+const diff = touchStart - e.changedTouches[0].clientX
+
+if(diff > 50){
+
+next()
+
+}
+
+if(diff < -50){
+
+prev()
+
+}
+
+setTouchStart(null)
+
+}
+
+function next(){
+
+if(viewer === null) return
+
+setViewer((viewer+1)%uploads.length)
+
+}
+
+function prev(){
+
+if(viewer === null) return
+
+setViewer((viewer-1+uploads.length)%uploads.length)
+
+}
+
+
+
+if(!event) return <div style={{padding:40}}>Loading...</div>
 
 const photos = uploads.filter(u=>u.type==="image").length
 const videos = uploads.filter(u=>u.type==="video").length
@@ -116,6 +203,7 @@ const videos = uploads.filter(u=>u.type==="video").length
 return(
 
 <div style={{background:"#081a2f",minHeight:"100vh",color:"white"}}>
+
 
 {/* HEADER */}
 
@@ -225,7 +313,7 @@ background:"#d4a24c"
 </div>
 
 <p style={{fontSize:12}}>
-Upload bezig... sluit deze pagina niet.
+Upload bezig... sluit deze pagina niet
 </p>
 
 </div>
@@ -253,22 +341,38 @@ key={item.id}
 onClick={()=>setViewer(index)}
 style={{
 cursor:"pointer",
+position:"relative",
 overflow:"hidden",
-borderRadius:6,
-background:"#000"
+borderRadius:6
 }}
 >
 
 {item.type==="video" ? (
 
+<>
+
 <video
 src={item.file_url}
+preload="metadata"
 muted
 playsInline
 style={{width:"100%",height:120,objectFit:"cover"}}
 />
 
-) : (
+<div style={{
+position:"absolute",
+top:"50%",
+left:"50%",
+transform:"translate(-50%,-50%)",
+fontSize:30,
+color:"white"
+}}>
+▶
+</div>
+
+</>
+
+):(
 
 <img
 src={item.file_url}
@@ -284,35 +388,56 @@ style={{width:"100%",height:120,objectFit:"cover"}}
 </div>
 
 
-{/* FULLSCREEN */}
+{/* FULLSCREEN VIEWER */}
 
 {viewer!==null && (
 
 <div
-onClick={()=>setViewer(null)}
 style={{
 position:"fixed",
 top:0,
 left:0,
 right:0,
 bottom:0,
-background:"rgba(0,0,0,0.95)",
+background:"black",
 display:"flex",
 alignItems:"center",
 justifyContent:"center",
 zIndex:999
 }}
+
+onTouchStart={handleTouchStart}
+onTouchEnd={handleTouchEnd}
+
 >
+
+<button
+onClick={()=>setViewer(null)}
+style={{
+position:"absolute",
+top:20,
+right:20,
+fontSize:30,
+background:"none",
+border:"none",
+color:"white",
+cursor:"pointer"
+}}
+>
+✕
+</button>
+
 
 {uploads[viewer].type==="video" ? (
 
 <video
 src={uploads[viewer].file_url}
+autoPlay
 controls
 style={{maxWidth:"90%",maxHeight:"90%"}}
 />
 
-) : (
+):(
 
 <img
 src={uploads[viewer].file_url}
