@@ -15,6 +15,7 @@ const [name,setName] = useState("");
 const [message,setMessage] = useState("");
 const [file,setFile] = useState<File | null>(null);
 const [viewerIndex,setViewerIndex] = useState<number | null>(null);
+const [progress,setProgress] = useState(0);
 
 useEffect(()=>{
 loadEvent();
@@ -53,14 +54,31 @@ if(!file || !event) return;
 
 const filePath = `${event.id}/${Date.now()}-${file.name}`;
 
-const {error} = await supabase.storage
-.from("event-uploads")
-.upload(filePath,file);
+const xhr = new XMLHttpRequest();
 
-if(error){
-alert("Upload error");
-return;
+xhr.upload.addEventListener("progress",(e)=>{
+if(e.lengthComputable){
+const percent = Math.round((e.loaded/e.total)*100);
+setProgress(percent);
 }
+});
+
+const formData = new FormData();
+formData.append("file",file);
+
+xhr.open(
+"POST",
+process.env.NEXT_PUBLIC_SUPABASE_URL +
+"/storage/v1/object/event-uploads/" +
+filePath
+);
+
+xhr.setRequestHeader(
+"Authorization",
+"Bearer " + process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
+xhr.onload = async () => {
 
 const fileUrl =
 process.env.NEXT_PUBLIC_SUPABASE_URL +
@@ -80,8 +98,13 @@ type
 setName("");
 setMessage("");
 setFile(null);
+setProgress(0);
 
 loadUploads(event.id);
+
+};
+
+xhr.send(file);
 
 }
 
@@ -99,7 +122,7 @@ color:"#f8fafc",
 fontFamily:"sans-serif"
 }}>
 
-{/* HEADER */}
+{/* HERO HEADER */}
 
 <div style={{
 height:320,
@@ -200,6 +223,35 @@ cursor:"pointer"
 >
 Upload memory
 </button>
+
+{/* PROGRESS BAR */}
+
+{progress > 0 && (
+
+<div style={{marginTop:12}}>
+
+<div style={{
+height:8,
+background:"#334155",
+borderRadius:6
+}}>
+
+<div style={{
+width:progress+"%",
+height:8,
+background:"#f59e0b",
+borderRadius:6
+}}/>
+
+</div>
+
+<p style={{fontSize:12,marginTop:4}}>
+Uploading {progress}%
+</p>
+
+</div>
+
+)}
 
 </div>
 
