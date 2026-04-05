@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useParams } from "next/navigation";
 
-export default function EventPage({ params }: any) {
-  const slug = params.slug;
+export default function EventPage() {
+
+  const params = useParams();
+  const slug = params?.slug;
 
   const [event, setEvent] = useState<any>(null);
   const [uploads, setUploads] = useState<any[]>([]);
@@ -16,10 +19,11 @@ export default function EventPage({ params }: any) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    loadEvent();
-  }, []);
+    if (slug) loadEvent();
+  }, [slug]);
 
   async function loadEvent() {
+
     const { data } = await supabase
       .from("events")
       .select("*")
@@ -32,6 +36,7 @@ export default function EventPage({ params }: any) {
   }
 
   async function loadUploads(eventId: string) {
+
     const { data } = await supabase
       .from("uploads")
       .select("*")
@@ -42,6 +47,7 @@ export default function EventPage({ params }: any) {
   }
 
   async function handleUpload() {
+
     if (!files || !event) return;
 
     setUploading(true);
@@ -88,35 +94,39 @@ export default function EventPage({ params }: any) {
   return (
     <div style={{ background:"#0b1628", minHeight:"100vh", color:"white" }}>
 
-      {/* HEADER */}
-      <div style={{
-        height:260,
-        backgroundImage:`url(${event.header_image})`,
-        backgroundSize:"cover",
-        backgroundPosition:"center",
-        position:"relative"
-      }}>
-        <div style={{
-          position:"absolute",
-          bottom:0,
-          left:0,
-          right:0,
-          padding:30,
-          background:"linear-gradient(transparent,rgba(0,0,0,0.7))"
-        }}>
+      <div
+        style={{
+          height:260,
+          backgroundImage:`url(${event.header_image})`,
+          backgroundSize:"cover",
+          backgroundPosition:"center",
+          position:"relative"
+        }}
+      >
+        <div
+          style={{
+            position:"absolute",
+            bottom:0,
+            left:0,
+            right:0,
+            padding:30,
+            background:"linear-gradient(transparent,rgba(0,0,0,0.7))"
+          }}
+        >
           <h1 style={{ fontSize:32 }}>{event.name}</h1>
           <p>{photos} foto's • {videos} video's</p>
         </div>
       </div>
 
-      {/* UPLOAD BOX */}
-      <div style={{
-        maxWidth:700,
-        margin:"40px auto",
-        background:"#16243a",
-        padding:25,
-        borderRadius:14
-      }}>
+      <div
+        style={{
+          maxWidth:700,
+          margin:"40px auto",
+          background:"#16243a",
+          padding:25,
+          borderRadius:14
+        }}
+      >
 
         <h3>Deel jouw herinnering</h3>
 
@@ -143,19 +153,18 @@ export default function EventPage({ params }: any) {
         </button>
 
         {uploading && (
+
           <div style={{ marginTop:20 }}>
 
-            <div style={{
-              height:8,
-              background:"#0b1628",
-              borderRadius:10
-            }}>
-              <div style={{
-                width:`${progress}%`,
-                height:8,
-                background:"#d4a24c",
-                borderRadius:10
-              }}/>
+            <div style={{ height:8, background:"#0b1628", borderRadius:10 }}>
+              <div
+                style={{
+                  width:`${progress}%`,
+                  height:8,
+                  background:"#d4a24c",
+                  borderRadius:10
+                }}
+              />
             </div>
 
             <p style={{ fontSize:13, marginTop:8 }}>
@@ -163,29 +172,28 @@ export default function EventPage({ params }: any) {
             </p>
 
           </div>
+
         )}
 
       </div>
 
-      {/* GALLERY */}
-      <div style={{
-        maxWidth:1200,
-        margin:"0 auto",
-        padding:20,
-        display:"grid",
-        gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",
-        gap:12
-      }}>
+      <div
+        style={{
+          maxWidth:1200,
+          margin:"0 auto",
+          padding:20,
+          display:"grid",
+          gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",
+          gap:12
+        }}
+      >
 
         {uploads.map((item, index)=>(
+
           <div
             key={item.id}
             onClick={()=>setViewerIndex(index)}
-            style={{
-              cursor:"pointer",
-              borderRadius:10,
-              overflow:"hidden"
-            }}
+            style={{ cursor:"pointer", borderRadius:10, overflow:"hidden" }}
           >
 
             {item.type === "video" ? (
@@ -205,11 +213,11 @@ export default function EventPage({ params }: any) {
             )}
 
           </div>
+
         ))}
 
       </div>
 
-      {/* FULLSCREEN VIEWER */}
       {viewerIndex !== null && (
 
         <div
