@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect,useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams } from "next/navigation";
 
-export default function EventPage() {
+export default function EventPage(){
 
 const params = useParams();
 const slug = params.slug as string;
@@ -13,12 +13,33 @@ const [event,setEvent] = useState<any>(null);
 const [uploads,setUploads] = useState<any[]>([]);
 const [name,setName] = useState("");
 const [message,setMessage] = useState("");
-const [file,setFile] = useState<File | null>(null);
-const [viewerIndex,setViewerIndex] = useState<number | null>(null);
+const [files,setFiles] = useState<File[]>([]);
 const [progress,setProgress] = useState(0);
+const [viewer,setViewer] = useState<number | null>(null);
 
 useEffect(()=>{
+
 loadEvent();
+
+const channel = supabase
+.channel("uploads")
+.on(
+"postgres_changes",
+{
+event:"INSERT",
+schema:"public",
+table:"uploads"
+},
+()=>{
+loadEvent();
+}
+)
+.subscribe();
+
+return()=>{
+supabase.removeChannel(channel);
+};
+
 },[slug]);
 
 async function loadEvent(){
@@ -50,35 +71,17 @@ setUploads(data || []);
 
 async function upload(){
 
-if(!file || !event) return;
+if(!files.length || !event) return;
+
+let uploaded = 0;
+
+for(const file of files){
 
 const filePath = `${event.id}/${Date.now()}-${file.name}`;
 
-const xhr = new XMLHttpRequest();
-
-xhr.upload.addEventListener("progress",(e)=>{
-if(e.lengthComputable){
-const percent = Math.round((e.loaded/e.total)*100);
-setProgress(percent);
-}
-});
-
-const formData = new FormData();
-formData.append("file",file);
-
-xhr.open(
-"POST",
-process.env.NEXT_PUBLIC_SUPABASE_URL +
-"/storage/v1/object/event-uploads/" +
-filePath
-);
-
-xhr.setRequestHeader(
-"Authorization",
-"Bearer " + process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-xhr.onload = async () => {
+await supabase.storage
+.from("event-uploads")
+.upload(filePath,file);
 
 const fileUrl =
 process.env.NEXT_PUBLIC_SUPABASE_URL +
@@ -95,16 +98,18 @@ file_url:fileUrl,
 type
 });
 
+uploaded++;
+
+setProgress(Math.round((uploaded/files.length)*100));
+
+}
+
+setFiles([]);
 setName("");
 setMessage("");
-setFile(null);
 setProgress(0);
 
 loadUploads(event.id);
-
-};
-
-xhr.send(file);
 
 }
 
@@ -113,7 +118,7 @@ const videoCount = uploads.filter(u=>u.type==="video").length;
 
 if(!event) return <div style={{padding:40}}>Loading...</div>;
 
-return (
+return(
 
 <div style={{
 background:"#0f172a",
@@ -122,10 +127,10 @@ color:"#f8fafc",
 fontFamily:"sans-serif"
 }}>
 
-{/* HERO HEADER */}
+{/* HEADER */}
 
 <div style={{
-height:320,
+height:300,
 backgroundImage:`url(${event.header_image || "https://images.unsplash.com/photo-1519681393784-d120267933ba"})`,
 backgroundSize:"cover",
 backgroundPosition:"center",
@@ -140,18 +145,15 @@ background:"linear-gradient(to bottom,rgba(0,0,0,0.2),rgba(0,0,0,0.8))"
 
 <div style={{
 position:"absolute",
-bottom:30,
-left:30
+bottom:20,
+left:20
 }}>
 
-<h1 style={{
-fontSize:34,
-fontWeight:700
-}}>
+<h1 style={{fontSize:32,fontWeight:700}}>
 {event.name}
 </h1>
 
-<p style={{opacity:0.8}}>
+<p>
 {imageCount} foto's • {videoCount} video's
 </p>
 
@@ -159,76 +161,55 @@ fontWeight:700
 
 </div>
 
-<div style={{
-maxWidth:900,
-margin:"auto",
-padding:20
-}}>
+<div style={{maxWidth:900,margin:"auto",padding:20}}>
 
-{/* UPLOAD CARD */}
+{/* UPLOAD FORM */}
 
 <div style={{
 background:"#1e293b",
 padding:20,
-borderRadius:14,
-marginTop:-40,
-boxShadow:"0 20px 50px rgba(0,0,0,0.4)"
+borderRadius:12,
+marginTop:-40
 }}>
 
-<h2 style={{marginBottom:15}}>Deel jouw herinnering</h2>
+<h2>Deel jouw herinnering</h2>
 
 <input
 placeholder="Naam"
 value={name}
 onChange={(e)=>setName(e.target.value)}
-style={{
-width:"100%",
-padding:12,
-marginBottom:10,
-borderRadius:8,
-border:"none"
-}}
+style={{width:"100%",padding:10,marginBottom:10}}
 />
 
 <textarea
-placeholder="Wil je iets delen met het stel?"
+placeholder="Wil je iets delen?"
 value={message}
 onChange={(e)=>setMessage(e.target.value)}
-style={{
-width:"100%",
-padding:12,
-marginBottom:10,
-borderRadius:8,
-border:"none"
-}}
+style={{width:"100%",padding:10,marginBottom:10}}
 />
 
 <input
 type="file"
-onChange={(e)=>setFile(e.target.files?.[0] || null)}
+multiple
+onChange={(e)=>setFiles(Array.from(e.target.files || []))}
+style={{marginBottom:10}}
 />
 
 <button
 onClick={upload}
 style={{
-marginTop:12,
-padding:"12px 20px",
 background:"#f59e0b",
-border:"none",
+padding:"12px 20px",
 borderRadius:8,
-color:"#000",
-fontWeight:600,
-cursor:"pointer"
+border:"none"
 }}
 >
-Upload memory
+Upload
 </button>
 
-{/* PROGRESS BAR */}
+{progress>0 &&(
 
-{progress > 0 && (
-
-<div style={{marginTop:12}}>
+<div style={{marginTop:10}}>
 
 <div style={{
 height:8,
@@ -245,7 +226,7 @@ borderRadius:6
 
 </div>
 
-<p style={{fontSize:12,marginTop:4}}>
+<p style={{fontSize:12}}>
 Uploading {progress}%
 </p>
 
@@ -257,17 +238,10 @@ Uploading {progress}%
 
 {/* GALLERY */}
 
-<h2 style={{
-marginTop:40,
-marginBottom:20
-}}>
-Memories
-</h2>
-
 <div style={{
-display:"grid",
-gridTemplateColumns:"repeat(2,1fr)",
-gap:14
+marginTop:40,
+columnCount:2,
+columnGap:12
 }}>
 
 {uploads.map((item,index)=>(
@@ -275,49 +249,28 @@ gap:14
 <div
 key={item.id}
 style={{
-background:"#1e293b",
-borderRadius:12,
-overflow:"hidden",
+breakInside:"avoid",
+marginBottom:12,
 cursor:"pointer"
 }}
-onClick={()=>setViewerIndex(index)}
+onClick={()=>setViewer(index)}
 >
 
 {item.type==="image" ? (
 
 <img
 src={item.file_url}
-style={{
-width:"100%",
-display:"block"
-}}
+style={{width:"100%",borderRadius:12}}
 />
 
 ):( 
 
 <video
 src={item.file_url}
-style={{
-width:"100%"
-}}
+style={{width:"100%",borderRadius:12}}
 />
 
 )}
-
-<div style={{padding:10}}>
-
-<p style={{fontWeight:600}}>
-{item.name}
-</p>
-
-<p style={{
-fontSize:14,
-opacity:0.7
-}}>
-{item.message}
-</p>
-
-</div>
 
 </div>
 
@@ -329,7 +282,7 @@ opacity:0.7
 
 {/* FULLSCREEN VIEWER */}
 
-{viewerIndex !== null && (
+{viewer!==null &&(
 
 <div style={{
 position:"fixed",
@@ -342,7 +295,7 @@ zIndex:1000
 }}>
 
 <button
-onClick={()=>setViewerIndex(null)}
+onClick={()=>setViewer(null)}
 style={{
 position:"absolute",
 top:20,
@@ -355,7 +308,7 @@ color:"white"
 </button>
 
 <button
-onClick={()=>viewerIndex>0 && setViewerIndex(viewerIndex-1)}
+onClick={()=>viewer>0 && setViewer(viewer-1)}
 style={{
 position:"absolute",
 left:20,
@@ -366,31 +319,25 @@ color:"white"
 ‹
 </button>
 
-{uploads[viewerIndex].type==="image" ? (
+{uploads[viewer].type==="image" ? (
 
 <img
-src={uploads[viewerIndex].file_url}
-style={{
-maxWidth:"90%",
-maxHeight:"90%"
-}}
+src={uploads[viewer].file_url}
+style={{maxWidth:"90%",maxHeight:"90%"}}
 />
 
 ):( 
 
 <video
-src={uploads[viewerIndex].file_url}
+src={uploads[viewer].file_url}
 controls
-style={{
-maxWidth:"90%",
-maxHeight:"90%"
-}}
+style={{maxWidth:"90%",maxHeight:"90%"}}
 />
 
 )}
 
 <button
-onClick={()=>viewerIndex < uploads.length-1 && setViewerIndex(viewerIndex+1)}
+onClick={()=>viewer<uploads.length-1 && setViewer(viewer+1)}
 style={{
 position:"absolute",
 right:20,

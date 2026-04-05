@@ -7,19 +7,12 @@ import JSZip from "jszip";
 export default function AdminPage(){
 
 const [events,setEvents] = useState<any[]>([]);
-const [uploads,setUploads] = useState<any[]>([]);
 const [selectedEvent,setSelectedEvent] = useState<any>(null);
-
-const [stats,setStats] = useState({
-events:0,
-uploads:0,
-photos:0,
-videos:0
-});
+const [uploads,setUploads] = useState<any[]>([]);
+const [newEvent,setNewEvent] = useState("");
 
 useEffect(()=>{
 loadEvents();
-loadStats();
 },[]);
 
 async function loadEvents(){
@@ -33,21 +26,65 @@ setEvents(data || []);
 
 }
 
-async function loadStats(){
+async function createEvent(){
 
-const {data:events} = await supabase.from("events").select("*");
-const {data:uploads} = await supabase.from("uploads").select("*");
+if(!newEvent) return;
 
-setStats({
-events:events?.length || 0,
-uploads:uploads?.length || 0,
-photos:uploads?.filter(u=>u.type==="image").length || 0,
-videos:uploads?.filter(u=>u.type==="video").length || 0
+const slug = newEvent
+.toLowerCase()
+.replace(/\s+/g,"-");
+
+await supabase
+.from("events")
+.insert({
+name:newEvent,
+slug
 });
+
+setNewEvent("");
+
+loadEvents();
 
 }
 
-async function loadUploads(event:any){
+async function deleteEvent(event:any){
+
+const confirmDelete = confirm("Event verwijderen inclusief uploads?");
+
+if(!confirmDelete) return;
+
+const {data:files} = await supabase
+.from("uploads")
+.select("*")
+.eq("event_id",event.id);
+
+for(const file of files || []){
+
+const path = file.file_url.split("/event-uploads/")[1];
+
+await supabase.storage
+.from("event-uploads")
+.remove([path]);
+
+}
+
+await supabase
+.from("uploads")
+.delete()
+.eq("event_id",event.id);
+
+await supabase
+.from("events")
+.delete()
+.eq("id",event.id);
+
+setSelectedEvent(null);
+
+loadEvents();
+
+}
+
+async function openEvent(event:any){
 
 setSelectedEvent(event);
 
@@ -57,30 +94,6 @@ const {data} = await supabase
 .eq("event_id",event.id);
 
 setUploads(data || []);
-
-}
-
-async function uploadHeader(e:any){
-
-const file = e.target.files[0];
-
-const path = "headers/" + Date.now() + file.name;
-
-await supabase.storage
-.from("event-uploads")
-.upload(path,file);
-
-const url =
-process.env.NEXT_PUBLIC_SUPABASE_URL +
-"/storage/v1/object/public/event-uploads/" +
-path;
-
-await supabase
-.from("events")
-.update({header_image:url})
-.eq("id",selectedEvent.id);
-
-loadEvents();
 
 }
 
@@ -116,23 +129,40 @@ padding:40,
 fontFamily:"sans-serif"
 }}>
 
-<h1 style={{fontSize:32,fontWeight:700}}>
-Showverhuur Memories Dashboard
-</h1>
+<h1 style={{fontSize:32}}>Showverhuur Memories</h1>
 
-{/* ANALYTICS */}
+{/* CREATE EVENT */}
 
 <div style={{
-display:"grid",
-gridTemplateColumns:"repeat(4,1fr)",
-gap:20,
-marginTop:30
+marginTop:30,
+background:"#1e293b",
+padding:20,
+borderRadius:10
 }}>
 
-<Card title="Events" value={stats.events}/>
-<Card title="Uploads" value={stats.uploads}/>
-<Card title="Photos" value={stats.photos}/>
-<Card title="Videos" value={stats.videos}/>
+<h2>Nieuw event maken</h2>
+
+<input
+placeholder="Event naam"
+value={newEvent}
+onChange={(e)=>setNewEvent(e.target.value)}
+style={{
+padding:10,
+width:"100%",
+marginBottom:10
+}}
+/>
+
+<button
+onClick={createEvent}
+style={{
+background:"#22c55e",
+padding:"10px 20px",
+borderRadius:8
+}}
+>
+Event maken
+</button>
 
 </div>
 
@@ -154,16 +184,30 @@ key={event.id}
 style={{
 background:"#1e293b",
 padding:20,
-borderRadius:12,
-cursor:"pointer"
+borderRadius:10
 }}
-onClick={()=>loadUploads(event)}
 >
 
 <h3>{event.name}</h3>
-<p style={{opacity:0.7}}>
-/event/{event.slug}
-</p>
+
+<p>/event/{event.slug}</p>
+
+<button
+onClick={()=>openEvent(event)}
+style={{marginRight:10}}
+>
+Open
+</button>
+
+<button
+onClick={()=>deleteEvent(event)}
+style={{
+background:"#ef4444",
+color:"white"
+}}
+>
+Delete
+</button>
 
 </div>
 
@@ -175,86 +219,30 @@ onClick={()=>loadUploads(event)}
 
 {selectedEvent && (
 
-<div style={{marginTop:50}}>
+<div style={{marginTop:40}}>
 
 <h2>{selectedEvent.name}</h2>
 
-<p style={{opacity:0.7}}>
-/event/{selectedEvent.slug}
-</p>
-
-{/* QR LINK */}
-
-<div style={{marginTop:20}}>
-
-<h3>Event link</h3>
-
-<a
-href={"/event/"+selectedEvent.slug}
-target="_blank"
-style={{color:"#f59e0b"}}
->
-/event/{selectedEvent.slug}
-</a>
-
-</div>
-
-{/* HEADER UPLOAD */}
-
-<div style={{marginTop:20}}>
-
-<h3>Header afbeelding uploaden</h3>
-
-<input type="file" onChange={uploadHeader}/>
-
-</div>
-
-{/* DOWNLOAD */}
-
-<div style={{marginTop:30}}>
+<p>/event/{selectedEvent.slug}</p>
 
 <button
 onClick={downloadZip}
 style={{
-padding:"10px 16px",
 background:"#22c55e",
-border:"none",
-borderRadius:8,
-cursor:"pointer"
+padding:"10px 20px",
+borderRadius:8
 }}
 >
 Download ZIP
 </button>
 
-</div>
+<p style={{marginTop:20}}>
+Uploads: {uploads.length}
+</p>
 
 </div>
 
 )}
-
-</div>
-
-);
-
-}
-
-function Card({title,value}:any){
-
-return(
-
-<div style={{
-background:"#1e293b",
-padding:20,
-borderRadius:12
-}}>
-
-<p style={{opacity:0.7}}>
-{title}
-</p>
-
-<h2 style={{fontSize:28,fontWeight:700}}>
-{value}
-</h2>
 
 </div>
 
