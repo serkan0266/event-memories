@@ -34,7 +34,7 @@ export default function EventPage({ params }: any) {
     const { data } = await supabase
       .from("uploads")
       .select("*")
-      .eq("event_slug", slug)
+    .eq("slug", slug)
       .order("created_at", { ascending: false });
 
     setUploads(data || []);
