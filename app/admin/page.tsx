@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-export default function AdminPage() {
+export default function AdminPage(){
 
 const [allowed,setAllowed] = useState(false)
 const [code,setCode] = useState("")
 
 const [events,setEvents] = useState<any[]>([])
+const [uploads,setUploads] = useState<any[]>([])
+
 const [name,setName] = useState("")
 const [slug,setSlug] = useState("")
 
@@ -16,71 +18,108 @@ useEffect(()=>{
 
 const saved = localStorage.getItem("admin_access")
 
-if(saved === "true"){
+if(saved==="true"){
 setAllowed(true)
-loadEvents()
+loadData()
 }
 
 },[])
 
+async function loadData(){
+
+const {data:eventsData} = await supabase
+.from("events")
+.select("*")
+.order("created_at",{ascending:false})
+
+const {data:uploadsData} = await supabase
+.from("uploads")
+.select("*")
+
+setEvents(eventsData || [])
+setUploads(uploadsData || [])
+
+}
 
 function login(){
 
-if(code === "66"){
+if(code==="66"){
 localStorage.setItem("admin_access","true")
 setAllowed(true)
-loadEvents()
+loadData()
 }else{
 alert("Verkeerde code")
 }
 
 }
 
-
-async function loadEvents(){
-
-const {data} = await supabase
-.from("events")
-.select("*")
-.order("created_at",{ascending:false})
-
-setEvents(data || [])
-
-}
-
-
 async function createEvent(){
 
-if(!name || !slug) return
-
 await supabase.from("events").insert({
+
 name:name,
 slug:slug
+
 })
 
 setName("")
 setSlug("")
 
-loadEvents()
+loadData()
 
 }
-
 
 async function deleteEvent(id:string){
 
 if(!confirm("Event verwijderen?")) return
 
-await supabase
-.from("events")
-.delete()
-.eq("id",id)
+await supabase.from("events").delete().eq("id",id)
 
-loadEvents()
+loadData()
 
 }
 
+async function uploadHeader(e:any,eventId:string){
 
-/* LOGIN SCREEN */
+const file = e.target.files[0]
+
+if(!file) return
+
+const path = `headers/${Date.now()}-${file.name}`
+
+await supabase.storage
+.from("uploads")
+.upload(path,file)
+
+const {data} = supabase.storage
+.from("uploads")
+.getPublicUrl(path)
+
+await supabase
+.from("events")
+.update({header_image:data.publicUrl})
+.eq("id",eventId)
+
+loadData()
+
+}
+
+function downloadZip(eventId:string){
+
+const files = uploads
+.filter(u=>u.event_id===eventId)
+.map(u=>u.file_url)
+
+files.forEach(url=>{
+
+const a=document.createElement("a")
+a.href=url
+a.download=""
+a.click()
+
+})
+
+}
 
 if(!allowed){
 
@@ -108,11 +147,7 @@ type="password"
 placeholder="Code"
 value={code}
 onChange={e=>setCode(e.target.value)}
-style={{
-padding:10,
-width:200,
-marginTop:10
-}}
+style={{padding:10}}
 />
 
 <br/><br/>
@@ -138,18 +173,15 @@ Login
 
 }
 
-
-/* ADMIN PANEL */
-
 return(
 
 <div style={{
-padding:40,
 background:"#f5efe6",
-minHeight:"100vh"
+minHeight:"100vh",
+padding:40
 }}>
 
-<h1 style={{marginBottom:20}}>Memories Admin</h1>
+<h1 style={{marginBottom:30}}>Memories Admin</h1>
 
 
 {/* CREATE EVENT */}
@@ -157,7 +189,7 @@ minHeight:"100vh"
 <div style={{
 background:"white",
 padding:20,
-borderRadius:10,
+borderRadius:12,
 marginBottom:30
 }}>
 
@@ -171,7 +203,7 @@ style={{padding:10,marginRight:10}}
 />
 
 <input
-placeholder="Slug (bijv babyfeest)"
+placeholder="Slug"
 value={slug}
 onChange={e=>setSlug(e.target.value)}
 style={{padding:10,marginRight:10}}
@@ -193,28 +225,41 @@ Maak event
 </div>
 
 
-{/* EVENT LIST */}
+{/* EVENTS */}
 
 <div style={{
 display:"grid",
-gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",
+gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",
 gap:20
 }}>
 
-{events.map(event=>(
+{events.map(event=>{
+
+const eventUploads = uploads.filter(u=>u.event_id===event.id)
+
+const photos = eventUploads.filter(u=>u.type==="image").length
+const videos = eventUploads.filter(u=>u.type==="video").length
+
+return(
 
 <div
 key={event.id}
 style={{
 background:"white",
 padding:20,
-borderRadius:10
+borderRadius:12,
+boxShadow:"0 10px 20px rgba(0,0,0,0.05)"
 }}
 >
 
 <h3>{event.name}</h3>
 
 <p>/event/{event.slug}</p>
+
+<p>
+📷 {photos} foto's  
+🎥 {videos} video's
+</p>
 
 <a
 href={`/event/${event.slug}`}
@@ -225,7 +270,7 @@ Open event
 
 <br/><br/>
 
-{/* QR CODE */}
+{/* QR */}
 
 <img
 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://memories.showverhuur.nl/event/${event.slug}`}
@@ -233,12 +278,27 @@ src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://memo
 
 <br/><br/>
 
-<a
-href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=https://memories.showverhuur.nl/event/${event.slug}`}
-download
+{/* HEADER UPLOAD */}
+
+<input
+type="file"
+onChange={(e)=>uploadHeader(e,event.id)}
+/>
+
+<br/><br/>
+
+<button
+onClick={()=>downloadZip(event.id)}
+style={{
+background:"#d4a24c",
+border:"none",
+padding:"8px 14px",
+color:"white",
+borderRadius:6
+}}
 >
-Download QR
-</a>
+Download alle media
+</button>
 
 <br/><br/>
 
@@ -252,12 +312,14 @@ color:"white",
 borderRadius:6
 }}
 >
-Verwijder
+Verwijder event
 </button>
 
 </div>
 
-))}
+)
+
+})}
 
 </div>
 
