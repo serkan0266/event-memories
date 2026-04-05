@@ -17,7 +17,6 @@ export default function EventPage({ params }: any) {
 
   useEffect(() => {
     loadEvent();
-    loadUploads();
   }, []);
 
   async function loadEvent() {
@@ -28,298 +27,228 @@ export default function EventPage({ params }: any) {
       .single();
 
     setEvent(data);
+
+    if (data) loadUploads(data.id);
   }
 
-  async function loadUploads() {
+  async function loadUploads(eventId: string) {
     const { data } = await supabase
       .from("uploads")
       .select("*")
-    .eq("slug", slug)
+      .eq("event_id", eventId)
       .order("created_at", { ascending: false });
 
     setUploads(data || []);
   }
 
   async function handleUpload() {
-    if (!files) return;
+    if (!files || !event) return;
 
     setUploading(true);
-    let done = 0;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    let uploaded = 0;
 
-      const path = `${slug}/${Date.now()}_${file.name}`;
+    for (const file of Array.from(files)) {
 
-      await supabase.storage.from("uploads").upload(path, file);
+      const filePath = `${event.id}/${Date.now()}-${file.name}`;
+
+      const { error } = await supabase.storage
+        .from("uploads")
+        .upload(filePath, file);
+
+      if (error) continue;
 
       const { data: publicUrl } = supabase.storage
         .from("uploads")
-        .getPublicUrl(path);
+        .getPublicUrl(filePath);
 
       await supabase.from("uploads").insert({
-        event_slug: slug,
+        event_id: event.id,
         file_url: publicUrl.publicUrl,
         type: file.type.startsWith("video") ? "video" : "image",
       });
 
-      done++;
-      setProgress(Math.round((done / files.length) * 100));
+      uploaded++;
+
+      setProgress(Math.round((uploaded / files.length) * 100));
     }
 
     setUploading(false);
-    setProgress(0);
     setFiles(null);
+    setProgress(0);
 
-    loadUploads();
+    loadUploads(event.id);
   }
 
-  function next() {
-    if (viewerIndex === null) return;
-    if (viewerIndex < uploads.length - 1) setViewerIndex(viewerIndex + 1);
-  }
+  if (!event) return <div style={{ padding: 40 }}>Loading...</div>;
 
-  function prev() {
-    if (viewerIndex === null) return;
-    if (viewerIndex > 0) setViewerIndex(viewerIndex - 1);
-  }
-
-  if (!event) return null;
+  const photos = uploads.filter((u) => u.type === "image").length;
+  const videos = uploads.filter((u) => u.type === "video").length;
 
   return (
-    <div
-      style={{
-        background: "#F7F3EE",
-        minHeight: "100vh",
-        fontFamily: "system-ui",
-      }}
-    >
+    <div style={{ background:"#0b1628", minHeight:"100vh", color:"white" }}>
 
-      {/* HERO HEADER */}
-
-      <div
-        style={{
-          position: "relative",
-          height: 260,
-          overflow: "hidden",
-        }}
-      >
-        {event.header_image && (
-          <img
-            src={event.header_image}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              position: "absolute",
-            }}
-          />
-        )}
-
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(0,0,0,0.45)",
-          }}
-        />
-
-        {/* logo */}
-
-        <img
-          src="/logo.png"
-          style={{
-            position: "absolute",
-            top: 20,
-            left: 20,
-            height: 40,
-          }}
-        />
-
-        {/* titel */}
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: 25,
-            left: 25,
-            color: "white",
-          }}
-        >
-          <h1 style={{ margin: 0 }}>{event.name}</h1>
-          <p>{uploads.length} herinneringen</p>
+      {/* HEADER */}
+      <div style={{
+        height:260,
+        backgroundImage:`url(${event.header_image})`,
+        backgroundSize:"cover",
+        backgroundPosition:"center",
+        position:"relative"
+      }}>
+        <div style={{
+          position:"absolute",
+          bottom:0,
+          left:0,
+          right:0,
+          padding:30,
+          background:"linear-gradient(transparent,rgba(0,0,0,0.7))"
+        }}>
+          <h1 style={{ fontSize:32 }}>{event.name}</h1>
+          <p>{photos} foto's • {videos} video's</p>
         </div>
       </div>
 
-      {/* UPLOAD CARD */}
+      {/* UPLOAD BOX */}
+      <div style={{
+        maxWidth:700,
+        margin:"40px auto",
+        background:"#16243a",
+        padding:25,
+        borderRadius:14
+      }}>
 
-      <div
-        style={{
-          maxWidth: 800,
-          margin: "40px auto",
-          background: "white",
-          padding: 30,
-          borderRadius: 14,
-          boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-        }}
-      >
+        <h3>Deel jouw herinnering</h3>
+
         <input
           type="file"
           multiple
-          onChange={(e) => setFiles(e.target.files)}
+          onChange={(e)=>setFiles(e.target.files)}
         />
+
+        <br/><br/>
 
         <button
           onClick={handleUpload}
-          disabled={uploading}
           style={{
-            marginTop: 15,
-            padding: "12px 20px",
-            background: "#C9A46C",
-            border: "none",
-            borderRadius: 8,
-            color: "white",
-            cursor: "pointer",
+            background:"#d4a24c",
+            border:"none",
+            padding:"12px 20px",
+            borderRadius:8,
+            color:"white",
+            cursor:"pointer"
           }}
         >
           Upload
         </button>
 
         {uploading && (
-          <div style={{ marginTop: 15 }}>
-            <div
-              style={{
-                height: 8,
-                background: "#eee",
-                borderRadius: 10,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  width: progress + "%",
-                  height: 8,
-                  background: "#C9A46C",
-                }}
-              />
+          <div style={{ marginTop:20 }}>
+
+            <div style={{
+              height:8,
+              background:"#0b1628",
+              borderRadius:10
+            }}>
+              <div style={{
+                width:`${progress}%`,
+                height:8,
+                background:"#d4a24c",
+                borderRadius:10
+              }}/>
             </div>
 
-            <p style={{ marginTop: 8 }}>
-              {progress}% upload — grote video's kunnen even duren.
-              Sluit deze pagina niet.
+            <p style={{ fontSize:13, marginTop:8 }}>
+              Upload bezig... sluit deze pagina niet.
             </p>
+
           </div>
         )}
+
       </div>
 
       {/* GALLERY */}
+      <div style={{
+        maxWidth:1200,
+        margin:"0 auto",
+        padding:20,
+        display:"grid",
+        gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",
+        gap:12
+      }}>
 
-      <div
-        style={{
-          maxWidth: 1000,
-          margin: "0 auto",
-          columnCount: 3,
-          columnGap: 12,
-          padding: "0 20px",
-        }}
-      >
-        {uploads.map((item, i) => (
+        {uploads.map((item, index)=>(
           <div
             key={item.id}
-            onClick={() => setViewerIndex(i)}
+            onClick={()=>setViewerIndex(index)}
             style={{
-              marginBottom: 12,
-              breakInside: "avoid",
-              cursor: "pointer",
+              cursor:"pointer",
+              borderRadius:10,
+              overflow:"hidden"
             }}
           >
-            {item.type === "image" ? (
+
+            {item.type === "video" ? (
+
+              <video
+                src={item.file_url}
+                style={{ width:"100%", height:260, objectFit:"cover" }}
+              />
+
+            ) : (
+
               <img
                 src={item.file_url}
-                style={{
-                  width: "100%",
-                  borderRadius: 12,
-                }}
+                style={{ width:"100%", height:260, objectFit:"cover" }}
               />
-            ) : (
-              <video
-                style={{
-                  width: "100%",
-                  borderRadius: 12,
-                }}
-              >
-                <source src={item.file_url} />
-              </video>
+
             )}
+
           </div>
         ))}
+
       </div>
 
       {/* FULLSCREEN VIEWER */}
-
       {viewerIndex !== null && (
+
         <div
-          onClick={() => setViewerIndex(null)}
+          onClick={()=>setViewerIndex(null)}
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.9)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 999,
+            position:"fixed",
+            top:0,
+            left:0,
+            right:0,
+            bottom:0,
+            background:"rgba(0,0,0,0.95)",
+            display:"flex",
+            alignItems:"center",
+            justifyContent:"center",
+            zIndex:100
           }}
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              prev();
-            }}
-            style={{
-              position: "absolute",
-              left: 30,
-              fontSize: 40,
-              color: "white",
-              background: "none",
-              border: "none",
-            }}
-          >
-            ‹
-          </button>
 
-          {uploads[viewerIndex].type === "image" ? (
+          {uploads[viewerIndex].type === "video" ? (
+
+            <video
+              src={uploads[viewerIndex].file_url}
+              controls
+              style={{ maxWidth:"90%", maxHeight:"90%" }}
+            />
+
+          ) : (
+
             <img
               src={uploads[viewerIndex].file_url}
-              style={{ maxHeight: "90vh", maxWidth: "90vw" }}
+              style={{ maxWidth:"90%", maxHeight:"90%" }}
             />
-          ) : (
-            <video
-              controls
-              autoPlay
-              style={{ maxHeight: "90vh", maxWidth: "90vw" }}
-            >
-              <source src={uploads[viewerIndex].file_url} />
-            </video>
+
           )}
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              next();
-            }}
-            style={{
-              position: "absolute",
-              right: 30,
-              fontSize: 40,
-              color: "white",
-              background: "none",
-              border: "none",
-            }}
-          >
-            ›
-          </button>
         </div>
+
       )}
+
     </div>
   );
 }
