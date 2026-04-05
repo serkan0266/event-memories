@@ -69,57 +69,105 @@ type:file.type.startsWith("video") ? "video" : "image"
 }
 
 setFiles(null)
+setName("")
+setMessage("")
+
 load()
 
 }
 
-if(!event) return <div>Loading...</div>
+if(!event) return <div style={{padding:40}}>Loading...</div>
 
 return(
 
-<div style={{background:"#f5efe6",minHeight:"100vh"}}>
+<div style={{
+background:"#f5efe6",
+minHeight:"100vh",
+fontFamily:"sans-serif"
+}}>
+
+{/* HEADER */}
 
 {event.header_image && (
+
+<div style={{
+width:"100%",
+height:260,
+overflow:"hidden"
+}}>
 
 <img
 src={event.header_image}
 style={{
 width:"100%",
-height:260,
+height:"100%",
 objectFit:"cover"
 }}
 />
 
+</div>
+
 )}
 
-<div style={{padding:20}}>
+{/* TITLE */}
 
-<h1>{event.name}</h1>
+<div style={{
+maxWidth:1000,
+margin:"0 auto",
+padding:20
+}}>
+
+<h1 style={{
+fontSize:34,
+marginBottom:6
+}}>
+{event.name}
+</h1>
+
+<p style={{color:"#777"}}>
+{uploads.filter(u=>u.type==="image").length} foto's • {uploads.filter(u=>u.type==="video").length} video's
+</p>
+
+{/* UPLOAD CARD */}
 
 <div style={{
 background:"white",
-padding:20,
-borderRadius:12,
-marginBottom:20
+padding:25,
+borderRadius:14,
+boxShadow:"0 10px 30px rgba(0,0,0,0.08)",
+marginTop:20,
+marginBottom:30
 }}>
 
-<h3>Deel jouw herinnering</h3>
+<h3 style={{marginBottom:15}}>
+Deel jouw herinnering
+</h3>
 
 <input
 placeholder="Naam"
 value={name}
 onChange={e=>setName(e.target.value)}
-style={{padding:10,width:"100%",marginBottom:10}}
+style={{
+width:"100%",
+padding:12,
+border:"1px solid #ddd",
+borderRadius:8,
+marginBottom:12
+}}
 />
 
 <textarea
 placeholder="Wil je iets delen?"
 value={message}
 onChange={e=>setMessage(e.target.value)}
-style={{padding:10,width:"100%"}}
+style={{
+width:"100%",
+padding:12,
+border:"1px solid #ddd",
+borderRadius:8,
+marginBottom:12
+}}
 />
-
-<br/><br/>
 
 <input
 type="file"
@@ -135,14 +183,18 @@ style={{
 background:"#d4a24c",
 color:"white",
 border:"none",
-padding:"10px 20px",
-borderRadius:6
+padding:"12px 26px",
+borderRadius:8,
+fontWeight:600,
+cursor:"pointer"
 }}
 >
-Upload
+Upload herinnering
 </button>
 
 </div>
+
+{/* GALLERY */}
 
 <div style={{
 display:"grid",
@@ -152,9 +204,15 @@ gap:6
 
 {uploads.map((u,index)=>(
 
-<div key={u.id}
-style={{aspectRatio:"1"}}
+<div
+key={u.id}
 onClick={()=>setViewer(index)}
+style={{
+aspectRatio:"1",
+cursor:"pointer",
+overflow:"hidden",
+borderRadius:8
+}}
 >
 
 {u.type==="image" ? (
@@ -187,7 +245,8 @@ top:"50%",
 left:"50%",
 transform:"translate(-50%,-50%)",
 fontSize:30,
-color:"white"
+color:"white",
+pointerEvents:"none"
 }}>
 ▶
 </div>
@@ -203,6 +262,8 @@ color:"white"
 </div>
 
 </div>
+
+{/* FULLSCREEN VIEWER */}
 
 {viewer!==null && (
 
@@ -227,10 +288,11 @@ style={{
 position:"absolute",
 top:30,
 right:30,
-fontSize:30,
+fontSize:32,
 color:"white",
 background:"none",
-border:"none"
+border:"none",
+cursor:"pointer"
 }}
 >
 ✕
@@ -240,7 +302,10 @@ border:"none"
 
 <img
 src={uploads[viewer].file_url}
-style={{maxWidth:"90%",maxHeight:"90%"}}
+style={{
+maxWidth:"90%",
+maxHeight:"90%"
+}}
 />
 
 ):( 
@@ -249,7 +314,10 @@ style={{maxWidth:"90%",maxHeight:"90%"}}
 src={uploads[viewer].file_url}
 controls
 autoPlay
-style={{maxWidth:"90%",maxHeight:"90%"}}
+style={{
+maxWidth:"90%",
+maxHeight:"90%"
+}}
 />
 
 )}
