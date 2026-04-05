@@ -6,20 +6,20 @@ import { useParams } from "next/navigation";
 
 export default function EventPage() {
 
-const params = useParams();
-const slug = params?.slug;
+const params = useParams()
+const slug = params?.slug
 
-const [event,setEvent] = useState<any>(null);
-const [uploads,setUploads] = useState<any[]>([]);
-const [files,setFiles] = useState<FileList | null>(null);
+const [event,setEvent] = useState<any>(null)
+const [uploads,setUploads] = useState<any[]>([])
 
-const [name,setName] = useState("");
-const [message,setMessage] = useState("");
+const [files,setFiles] = useState<FileList | null>(null)
+const [name,setName] = useState("")
+const [message,setMessage] = useState("")
 
-const [uploading,setUploading] = useState(false);
-const [progress,setProgress] = useState(0);
+const [uploading,setUploading] = useState(false)
+const [progress,setProgress] = useState(0)
 
-const [viewer,setViewer] = useState<number | null>(null);
+const [viewer,setViewer] = useState<number | null>(null)
 
 useEffect(()=>{
 
@@ -56,7 +56,7 @@ setUploads(data || [])
 }
 
 
-async function upload(){
+async function handleUpload(){
 
 if(!files || !event) return
 
@@ -72,7 +72,10 @@ const {error} = await supabase.storage
 .from("uploads")
 .upload(path,file)
 
-if(error) continue
+if(error){
+console.log(error)
+continue
+}
 
 const {data:publicUrl} = supabase.storage
 .from("uploads")
@@ -84,12 +87,12 @@ event_id:event.id,
 name:name,
 message:message,
 file_url:publicUrl.publicUrl,
-type:file.type.startsWith("video")?"video":"image"
+thumbnail_url:publicUrl.publicUrl,
+type:file.type.startsWith("video") ? "video":"image"
 
 })
 
 done++
-
 setProgress(Math.round(done/files.length*100))
 
 }
@@ -110,14 +113,14 @@ const photos = uploads.filter(u=>u.type==="image").length
 const videos = uploads.filter(u=>u.type==="video").length
 
 
-return (
+return(
 
-<div style={{background:"#0b1628",minHeight:"100vh",color:"white"}}>
+<div style={{background:"#081a2f",minHeight:"100vh",color:"white"}}>
 
 {/* HEADER */}
 
 <div style={{
-height:220,
+height:200,
 backgroundImage:`url(${event.header_image})`,
 backgroundSize:"cover",
 backgroundPosition:"center",
@@ -130,7 +133,7 @@ bottom:0,
 left:0,
 right:0,
 padding:20,
-background:"linear-gradient(transparent,rgba(0,0,0,0.7))"
+background:"linear-gradient(transparent,rgba(0,0,0,0.8))"
 }}>
 
 <h1 style={{fontSize:28}}>{event.name}</h1>
@@ -146,9 +149,9 @@ background:"linear-gradient(transparent,rgba(0,0,0,0.7))"
 <div style={{
 maxWidth:700,
 margin:"30px auto",
-background:"#16243a",
+background:"#14263e",
 padding:20,
-borderRadius:14
+borderRadius:16
 }}>
 
 <h3>Deel jouw herinnering</h3>
@@ -183,17 +186,17 @@ border:"none"
 <input
 type="file"
 multiple
-onChange={e=>setFiles(e.target.files)}
+onChange={(e)=>setFiles(e.target.files)}
 />
 
 <br/><br/>
 
 <button
-onClick={upload}
+onClick={handleUpload}
 style={{
 background:"#d4a24c",
 border:"none",
-padding:"10px 20px",
+padding:"12px 22px",
 borderRadius:8,
 color:"white"
 }}
@@ -222,7 +225,7 @@ background:"#d4a24c"
 </div>
 
 <p style={{fontSize:12}}>
-Upload bezig… sluit deze pagina niet
+Upload bezig... sluit deze pagina niet.
 </p>
 
 </div>
@@ -232,7 +235,7 @@ Upload bezig… sluit deze pagina niet
 </div>
 
 
-{/* GALLERY */}
+{/* INSTAGRAM GRID */}
 
 <div style={{
 maxWidth:1200,
@@ -251,22 +254,25 @@ onClick={()=>setViewer(index)}
 style={{
 cursor:"pointer",
 overflow:"hidden",
-borderRadius:6
+borderRadius:6,
+background:"#000"
 }}
 >
 
-{item.type==="video"? (
+{item.type==="video" ? (
 
 <video
 src={item.file_url}
-style={{width:"100%",height:130,objectFit:"cover"}}
+muted
+playsInline
+style={{width:"100%",height:120,objectFit:"cover"}}
 />
 
-):(
+) : (
 
 <img
 src={item.file_url}
-style={{width:"100%",height:130,objectFit:"cover"}}
+style={{width:"100%",height:120,objectFit:"cover"}}
 />
 
 )}
@@ -290,7 +296,7 @@ top:0,
 left:0,
 right:0,
 bottom:0,
-background:"black",
+background:"rgba(0,0,0,0.95)",
 display:"flex",
 alignItems:"center",
 justifyContent:"center",
@@ -298,7 +304,7 @@ zIndex:999
 }}
 >
 
-{uploads[viewer].type==="video"? (
+{uploads[viewer].type==="video" ? (
 
 <video
 src={uploads[viewer].file_url}
@@ -306,7 +312,7 @@ controls
 style={{maxWidth:"90%",maxHeight:"90%"}}
 />
 
-):(
+) : (
 
 <img
 src={uploads[viewer].file_url}
