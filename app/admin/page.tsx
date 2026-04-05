@@ -1,188 +1,203 @@
 "use client";
 
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import JSZip from "jszip";
 
-export default function AdminPage(){
+export default function AdminPage() {
 
-const [events,setEvents] = useState<any[]>([]);
-const [selectedEvent,setSelectedEvent] = useState<any>(null);
-const [uploads,setUploads] = useState<any[]>([]);
-const [newEvent,setNewEvent] = useState("");
+const [allowed,setAllowed] = useState(false)
+const [code,setCode] = useState("")
+
+const [events,setEvents] = useState<any[]>([])
+const [name,setName] = useState("")
+const [slug,setSlug] = useState("")
 
 useEffect(()=>{
-loadEvents();
-},[]);
+
+const saved = localStorage.getItem("admin_access")
+
+if(saved === "true"){
+setAllowed(true)
+loadEvents()
+}
+
+},[])
+
+
+function login(){
+
+if(code === "66"){
+localStorage.setItem("admin_access","true")
+setAllowed(true)
+loadEvents()
+}else{
+alert("Verkeerde code")
+}
+
+}
+
 
 async function loadEvents(){
 
 const {data} = await supabase
 .from("events")
 .select("*")
-.order("created_at",{ascending:false});
+.order("created_at",{ascending:false})
 
-setEvents(data || []);
+setEvents(data || [])
 
 }
+
 
 async function createEvent(){
 
-if(!newEvent) return;
+if(!name || !slug) return
 
-const slug = newEvent
-.toLowerCase()
-.replace(/\s+/g,"-");
+await supabase.from("events").insert({
+name:name,
+slug:slug
+})
 
-await supabase
-.from("events")
-.insert({
-name:newEvent,
-slug
-});
+setName("")
+setSlug("")
 
-setNewEvent("");
-loadEvents();
+loadEvents()
 
 }
 
-async function openEvent(event:any){
 
-setSelectedEvent(event);
+async function deleteEvent(id:string){
 
-const {data} = await supabase
-.from("uploads")
-.select("*")
-.eq("event_id",event.id);
-
-setUploads(data || []);
-
-}
-
-async function deleteEvent(event:any){
-
-const confirmDelete = confirm("Event verwijderen inclusief uploads?");
-
-if(!confirmDelete) return;
-
-await supabase
-.from("uploads")
-.delete()
-.eq("event_id",event.id);
+if(!confirm("Event verwijderen?")) return
 
 await supabase
 .from("events")
 .delete()
-.eq("id",event.id);
+.eq("id",id)
 
-setSelectedEvent(null);
-loadEvents();
-
-}
-
-async function uploadHeader(e:any){
-
-const file = e.target.files[0];
-if(!file) return;
-
-const path = "headers/" + Date.now() + "-" + file.name;
-
-await supabase.storage
-.from("event-uploads")
-.upload(path,file);
-
-const url =
-process.env.NEXT_PUBLIC_SUPABASE_URL +
-"/storage/v1/object/public/event-uploads/" +
-path;
-
-await supabase
-.from("events")
-.update({header_image:url})
-.eq("id",selectedEvent.id);
-
-alert("Header afbeelding opgeslagen");
-
-loadEvents();
+loadEvents()
 
 }
 
-async function downloadZip(){
 
-const zip = new JSZip();
+/* LOGIN SCREEN */
 
-for(const item of uploads){
-
-const res = await fetch(item.file_url);
-const blob = await res.blob();
-
-zip.file(item.file_url.split("/").pop(),blob);
-
-}
-
-const content = await zip.generateAsync({type:"blob"});
-
-const link = document.createElement("a");
-link.href = URL.createObjectURL(content);
-link.download = selectedEvent.slug + ".zip";
-link.click();
-
-}
+if(!allowed){
 
 return(
 
 <div style={{
-background:"#0f172a",
-minHeight:"100vh",
-color:"#f8fafc",
-padding:40,
-fontFamily:"sans-serif"
+height:"100vh",
+display:"flex",
+alignItems:"center",
+justifyContent:"center",
+background:"#f5efe6"
 }}>
 
-<h1>Showverhuur Memories</h1>
+<div style={{
+background:"white",
+padding:40,
+borderRadius:12,
+boxShadow:"0 10px 30px rgba(0,0,0,0.1)"
+}}>
+
+<h2>Admin toegang</h2>
+
+<input
+type="password"
+placeholder="Code"
+value={code}
+onChange={e=>setCode(e.target.value)}
+style={{
+padding:10,
+width:200,
+marginTop:10
+}}
+/>
+
+<br/><br/>
+
+<button
+onClick={login}
+style={{
+background:"#d4a24c",
+border:"none",
+padding:"10px 20px",
+color:"white",
+borderRadius:6
+}}
+>
+Login
+</button>
+
+</div>
+
+</div>
+
+)
+
+}
+
+
+/* ADMIN PANEL */
+
+return(
+
+<div style={{
+padding:40,
+background:"#f5efe6",
+minHeight:"100vh"
+}}>
+
+<h1 style={{marginBottom:20}}>Memories Admin</h1>
+
 
 {/* CREATE EVENT */}
 
 <div style={{
-background:"#1e293b",
+background:"white",
 padding:20,
 borderRadius:10,
-marginTop:20
+marginBottom:30
 }}>
 
-<h2>Nieuw event maken</h2>
+<h3>Nieuw event</h3>
 
 <input
 placeholder="Event naam"
-value={newEvent}
-onChange={(e)=>setNewEvent(e.target.value)}
-style={{
-padding:10,
-width:"100%",
-marginBottom:10
-}}
+value={name}
+onChange={e=>setName(e.target.value)}
+style={{padding:10,marginRight:10}}
+/>
+
+<input
+placeholder="Slug (bijv babyfeest)"
+value={slug}
+onChange={e=>setSlug(e.target.value)}
+style={{padding:10,marginRight:10}}
 />
 
 <button
 onClick={createEvent}
 style={{
-background:"#22c55e",
+background:"#d4a24c",
+border:"none",
 padding:"10px 20px",
-borderRadius:8
+color:"white",
+borderRadius:6
 }}
 >
-Event maken
+Maak event
 </button>
 
 </div>
 
-{/* EVENTS */}
 
-<h2 style={{marginTop:40}}>Events</h2>
+{/* EVENT LIST */}
 
 <div style={{
 display:"grid",
-gridTemplateColumns:"repeat(3,1fr)",
+gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",
 gap:20
 }}>
 
@@ -191,30 +206,53 @@ gap:20
 <div
 key={event.id}
 style={{
-background:"#1e293b",
+background:"white",
 padding:20,
 borderRadius:10
 }}
 >
 
 <h3>{event.name}</h3>
+
 <p>/event/{event.slug}</p>
 
-<button
-onClick={()=>openEvent(event)}
-style={{marginRight:10}}
+<a
+href={`/event/${event.slug}`}
+target="_blank"
 >
-Open
-</button>
+Open event
+</a>
+
+<br/><br/>
+
+{/* QR CODE */}
+
+<img
+src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://memories.showverhuur.nl/event/${event.slug}`}
+/>
+
+<br/><br/>
+
+<a
+href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=https://memories.showverhuur.nl/event/${event.slug}`}
+download
+>
+Download QR
+</a>
+
+<br/><br/>
 
 <button
-onClick={()=>deleteEvent(event)}
+onClick={()=>deleteEvent(event.id)}
 style={{
-background:"#ef4444",
-color:"white"
+background:"red",
+border:"none",
+padding:"8px 14px",
+color:"white",
+borderRadius:6
 }}
 >
-Delete
+Verwijder
 </button>
 
 </div>
@@ -223,63 +261,8 @@ Delete
 
 </div>
 
-{/* EVENT SETTINGS */}
-
-{selectedEvent && (
-
-<div style={{
-marginTop:40,
-background:"#1e293b",
-padding:20,
-borderRadius:10
-}}>
-
-<h2>{selectedEvent.name}</h2>
-
-<p>/event/{selectedEvent.slug}</p>
-
-<h3 style={{marginTop:20}}>Header afbeelding</h3>
-
-<input
-type="file"
-onChange={uploadHeader}
-/>
-
-{selectedEvent.header_image && (
-
-<img
-src={selectedEvent.header_image}
-style={{
-width:400,
-marginTop:20,
-borderRadius:10
-}}
-/>
-
-)}
-
-<button
-onClick={downloadZip}
-style={{
-marginTop:20,
-background:"#22c55e",
-padding:"10px 20px",
-borderRadius:8
-}}
->
-Download ZIP
-</button>
-
-<p style={{marginTop:10}}>
-Uploads: {uploads.length}
-</p>
-
 </div>
 
-)}
-
-</div>
-
-);
+)
 
 }
