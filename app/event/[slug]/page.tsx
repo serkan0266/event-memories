@@ -161,9 +161,9 @@ left:20
 
 </div>
 
-<div style={{maxWidth:900,margin:"auto",padding:20}}>
+<div style={{maxWidth:1100,margin:"auto",padding:20}}>
 
-{/* UPLOAD FORM */}
+{/* UPLOAD */}
 
 <div style={{
 background:"#1e293b",
@@ -236,12 +236,12 @@ Uploading {progress}%
 
 </div>
 
-{/* GALLERY */}
+{/* INSTAGRAM STYLE GALLERY */}
 
 <div style={{
 marginTop:40,
-columnCount:2,
-columnGap:12
+columns:"3 250px",
+columnGap:"14px"
 }}>
 
 {uploads.map((item,index)=>(
@@ -249,9 +249,11 @@ columnGap:12
 <div
 key={item.id}
 style={{
+marginBottom:14,
 breakInside:"avoid",
-marginBottom:12,
-cursor:"pointer"
+cursor:"pointer",
+borderRadius:12,
+overflow:"hidden"
 }}
 onClick={()=>setViewer(index)}
 >
@@ -260,14 +262,19 @@ onClick={()=>setViewer(index)}
 
 <img
 src={item.file_url}
-style={{width:"100%",borderRadius:12}}
+style={{
+width:"100%",
+display:"block"
+}}
 />
 
 ):( 
 
 <video
 src={item.file_url}
-style={{width:"100%",borderRadius:12}}
+style={{
+width:"100%"
+}}
 />
 
 )}

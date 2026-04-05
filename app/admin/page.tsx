@@ -42,44 +42,6 @@ slug
 });
 
 setNewEvent("");
-
-loadEvents();
-
-}
-
-async function deleteEvent(event:any){
-
-const confirmDelete = confirm("Event verwijderen inclusief uploads?");
-
-if(!confirmDelete) return;
-
-const {data:files} = await supabase
-.from("uploads")
-.select("*")
-.eq("event_id",event.id);
-
-for(const file of files || []){
-
-const path = file.file_url.split("/event-uploads/")[1];
-
-await supabase.storage
-.from("event-uploads")
-.remove([path]);
-
-}
-
-await supabase
-.from("uploads")
-.delete()
-.eq("event_id",event.id);
-
-await supabase
-.from("events")
-.delete()
-.eq("id",event.id);
-
-setSelectedEvent(null);
-
 loadEvents();
 
 }
@@ -94,6 +56,54 @@ const {data} = await supabase
 .eq("event_id",event.id);
 
 setUploads(data || []);
+
+}
+
+async function deleteEvent(event:any){
+
+const confirmDelete = confirm("Event verwijderen inclusief uploads?");
+
+if(!confirmDelete) return;
+
+await supabase
+.from("uploads")
+.delete()
+.eq("event_id",event.id);
+
+await supabase
+.from("events")
+.delete()
+.eq("id",event.id);
+
+setSelectedEvent(null);
+loadEvents();
+
+}
+
+async function uploadHeader(e:any){
+
+const file = e.target.files[0];
+if(!file) return;
+
+const path = "headers/" + Date.now() + "-" + file.name;
+
+await supabase.storage
+.from("event-uploads")
+.upload(path,file);
+
+const url =
+process.env.NEXT_PUBLIC_SUPABASE_URL +
+"/storage/v1/object/public/event-uploads/" +
+path;
+
+await supabase
+.from("events")
+.update({header_image:url})
+.eq("id",selectedEvent.id);
+
+alert("Header afbeelding opgeslagen");
+
+loadEvents();
 
 }
 
@@ -129,15 +139,15 @@ padding:40,
 fontFamily:"sans-serif"
 }}>
 
-<h1 style={{fontSize:32}}>Showverhuur Memories</h1>
+<h1>Showverhuur Memories</h1>
 
 {/* CREATE EVENT */}
 
 <div style={{
-marginTop:30,
 background:"#1e293b",
 padding:20,
-borderRadius:10
+borderRadius:10,
+marginTop:20
 }}>
 
 <h2>Nieuw event maken</h2>
@@ -173,8 +183,7 @@ Event maken
 <div style={{
 display:"grid",
 gridTemplateColumns:"repeat(3,1fr)",
-gap:20,
-marginTop:20
+gap:20
 }}>
 
 {events.map(event=>(
@@ -189,7 +198,6 @@ borderRadius:10
 >
 
 <h3>{event.name}</h3>
-
 <p>/event/{event.slug}</p>
 
 <button
@@ -215,19 +223,45 @@ Delete
 
 </div>
 
-{/* EVENT DETAIL */}
+{/* EVENT SETTINGS */}
 
 {selectedEvent && (
 
-<div style={{marginTop:40}}>
+<div style={{
+marginTop:40,
+background:"#1e293b",
+padding:20,
+borderRadius:10
+}}>
 
 <h2>{selectedEvent.name}</h2>
 
 <p>/event/{selectedEvent.slug}</p>
 
+<h3 style={{marginTop:20}}>Header afbeelding</h3>
+
+<input
+type="file"
+onChange={uploadHeader}
+/>
+
+{selectedEvent.header_image && (
+
+<img
+src={selectedEvent.header_image}
+style={{
+width:400,
+marginTop:20,
+borderRadius:10
+}}
+/>
+
+)}
+
 <button
 onClick={downloadZip}
 style={{
+marginTop:20,
 background:"#22c55e",
 padding:"10px 20px",
 borderRadius:8
@@ -236,7 +270,7 @@ borderRadius:8
 Download ZIP
 </button>
 
-<p style={{marginTop:20}}>
+<p style={{marginTop:10}}>
 Uploads: {uploads.length}
 </p>
 
