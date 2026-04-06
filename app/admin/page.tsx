@@ -23,7 +23,7 @@ const {data} = await supabase
 
 if(!data) return
 
-let eventsWithStats:any[] = []
+let list:any[] = []
 
 for(const e of data){
 
@@ -34,7 +34,6 @@ const {data:uploads} = await supabase
 
 let photos = 0
 let videos = 0
-let storage = 0
 
 uploads?.forEach((u:any)=>{
 
@@ -43,27 +42,17 @@ if(u.type==="video") videos++
 
 })
 
-uploads?.forEach((u:any)=>{
-
-if(u.file_url){
-
-storage += 5 // simpele schatting per bestand
-
-}
-
-})
-
-eventsWithStats.push({
+list.push({
 ...e,
 uploads:uploads?.length || 0,
 photos,
 videos,
-storage
+storage:uploads?.length*5 || 0
 })
 
 }
 
-setEvents(eventsWithStats)
+setEvents(list)
 
 }
 
@@ -84,6 +73,7 @@ loadEvents()
 
 }
 
+
 async function deleteEvent(id:string){
 
 if(!confirm("Event verwijderen?")) return
@@ -94,9 +84,47 @@ loadEvents()
 
 }
 
+
+async function uploadHeader(e:any,eventId:string){
+
+const file = e.target.files[0]
+
+if(!file) return
+
+const path = `headers/${Date.now()}-${file.name}`
+
+const {error} = await supabase.storage
+.from("uploads")
+.upload(path,file)
+
+if(error){
+alert("Upload fout")
+return
+}
+
+const {data:url} = supabase.storage
+.from("uploads")
+.getPublicUrl(path)
+
+await supabase
+.from("events")
+.update({header_image:url.publicUrl})
+.eq("id",eventId)
+
+alert("Header geupload")
+
+loadEvents()
+
+}
+
+
 return(
 
-<div style={{padding:40}}>
+<div style={{
+background:"#f5efe6",
+minHeight:"100vh",
+padding:40
+}}>
 
 <h1>Memories Admin</h1>
 
@@ -106,7 +134,7 @@ return(
 <div style={{
 background:"#eee",
 padding:20,
-borderRadius:10,
+borderRadius:12,
 marginBottom:30
 }}>
 
@@ -116,14 +144,14 @@ marginBottom:30
 placeholder="Event naam"
 value={name}
 onChange={(e)=>setName(e.target.value)}
-style={{marginRight:10,padding:8}}
+style={{padding:10,marginRight:10}}
 />
 
 <input
 placeholder="Slug (bijv babyfeest)"
 value={slug}
 onChange={(e)=>setSlug(e.target.value)}
-style={{marginRight:10,padding:8}}
+style={{padding:10,marginRight:10}}
 />
 
 <button
@@ -131,8 +159,8 @@ onClick={createEvent}
 style={{
 background:"#d4a24c",
 color:"white",
-padding:"10px 16px",
 border:"none",
+padding:"10px 16px",
 borderRadius:6
 }}
 >
@@ -144,7 +172,11 @@ Maak event
 
 {/* EVENTS */}
 
-<div style={{display:"flex",gap:30,flexWrap:"wrap"}}>
+<div style={{
+display:"flex",
+flexWrap:"wrap",
+gap:30
+}}>
 
 {events.map((e)=>{
 
@@ -154,10 +186,10 @@ return(
 
 <div key={e.id}
 style={{
-background:"#f5f5f5",
+background:"#f3f3f3",
 padding:20,
-borderRadius:12,
-width:300
+borderRadius:14,
+width:320
 }}
 >
 
@@ -168,20 +200,18 @@ width:300
 
 {/* STATS */}
 
-<div style={{marginBottom:10}}>
-
 <p>📤 Uploads: {e.uploads}</p>
 <p>📸 Foto's: {e.photos}</p>
 <p>🎥 Video's: {e.videos}</p>
 <p>💾 Storage: {e.storage} MB</p>
-
-</div>
 
 
 <a href={url} target="_blank">
 Open event
 </a>
 
+
+{/* QR */}
 
 <div style={{marginTop:10}}>
 
@@ -190,6 +220,38 @@ Open event
 </div>
 
 
+{/* HEADER UPLOAD */}
+
+<div style={{marginTop:10}}>
+
+<input
+type="file"
+onChange={(ev)=>uploadHeader(ev,e.id)}
+/>
+
+</div>
+
+
+{/* ZIP */}
+
+<a
+href={`/api/zip?event=${e.id}`}
+style={{
+display:"block",
+marginTop:10,
+background:"#d4a24c",
+color:"white",
+padding:"10px",
+borderRadius:6,
+textAlign:"center"
+}}
+>
+Download alle media (ZIP)
+</a>
+
+
+{/* DELETE */}
+
 <button
 onClick={()=>deleteEvent(e.id)}
 style={{
@@ -197,7 +259,7 @@ marginTop:10,
 background:"red",
 color:"white",
 border:"none",
-padding:"8px 12px",
+padding:"10px",
 borderRadius:6
 }}
 >
