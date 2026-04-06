@@ -3,7 +3,7 @@
 import { useEffect,useState } from "react"
 import { supabase } from "@/lib/supabase"
 
-export default function EventPage({params}:any){
+export default function EventPage({ params }: { params: { slug: string } }){
 
 const slug = params.slug
 
@@ -15,16 +15,23 @@ const [name,setName] = useState("")
 const [message,setMessage] = useState("")
 
 useEffect(()=>{
-load()
+loadEvent()
 },[])
 
-async function load(){
+async function loadEvent(){
 
-const {data:eventData} = await supabase
+if(!slug) return
+
+const {data:eventData,error} = await supabase
 .from("events")
 .select("*")
 .eq("slug",slug)
 .single()
+
+if(error){
+console.error(error)
+return
+}
 
 setEvent(eventData)
 
@@ -40,7 +47,7 @@ setUploads(uploadData || [])
 
 async function upload(){
 
-if(!files) return
+if(!files || !event) return
 
 for(const file of Array.from(files)){
 
@@ -70,11 +77,19 @@ setFiles(null)
 setName("")
 setMessage("")
 
-load()
+loadEvent()
 
 }
 
-if(!event) return <div style={{padding:40}}>Loading...</div>
+if(!event){
+
+return(
+<div style={{padding:40}}>
+Loading...
+</div>
+)
+
+}
 
 return(
 
