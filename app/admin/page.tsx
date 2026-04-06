@@ -18,7 +18,7 @@ const [slug,setSlug] = useState("")
 
 useEffect(()=>{
 
-const saved = localStorage.getItem("admin")
+const saved = localStorage.getItem("admin_access")
 
 if(saved==="true"){
 setAccess(true)
@@ -46,18 +46,21 @@ setUploads(uploadsData || [])
 function login(){
 
 if(code==="66"){
-localStorage.setItem("admin","true")
+localStorage.setItem("admin_access","true")
 setAccess(true)
 loadData()
 }else{
-alert("verkeerde code")
+alert("Verkeerde code")
 }
 
 }
 
 async function createEvent(){
 
-if(!name || !slug) return alert("vul alles in")
+if(!name || !slug){
+alert("Vul naam en slug in")
+return
+}
 
 await supabase.from("events").insert({
 name,
@@ -73,7 +76,7 @@ loadData()
 
 async function deleteEvent(id:string){
 
-if(!confirm("event verwijderen?")) return
+if(!confirm("Event verwijderen?")) return
 
 await supabase.from("events").delete().eq("id",id)
 
@@ -84,29 +87,31 @@ loadData()
 async function uploadHeader(e:any,eventId:string){
 
 const file = e.target.files[0]
+
 if(!file) return
 
 const fileName = `header-${Date.now()}-${file.name}`
 
 const {error} = await supabase.storage
 .from("uploads")
-.upload(fileName,file)
+.upload(`headers/${fileName}`,file)
 
 if(error){
+console.error(error)
 alert("Upload fout")
 return
 }
 
 const {data} = supabase.storage
 .from("uploads")
-.getPublicUrl(fileName)
+.getPublicUrl(`headers/${fileName}`)
 
 await supabase
 .from("events")
 .update({header_image:data.publicUrl})
 .eq("id",eventId)
 
-alert("Header opgeslagen")
+alert("Header succesvol geupload")
 
 loadData()
 
@@ -150,14 +155,15 @@ background:"#f5efe6"
 <div style={{
 background:"white",
 padding:40,
-borderRadius:12
+borderRadius:12,
+boxShadow:"0 10px 30px rgba(0,0,0,0.1)"
 }}>
 
 <h2>Admin login</h2>
 
 <input
 type="password"
-placeholder="code"
+placeholder="Code"
 value={code}
 onChange={(e)=>setCode(e.target.value)}
 style={{padding:10}}
@@ -169,9 +175,9 @@ style={{padding:10}}
 onClick={login}
 style={{
 background:"#d4a24c",
-color:"white",
 border:"none",
 padding:"10px 20px",
+color:"white",
 borderRadius:6
 }}
 >
@@ -194,7 +200,11 @@ minHeight:"100vh",
 padding:40
 }}>
 
-<h1>Memories Admin</h1>
+<h1 style={{marginBottom:30}}>
+Memories Admin
+</h1>
+
+{/* CREATE EVENT */}
 
 <div style={{
 background:"white",
@@ -203,7 +213,7 @@ borderRadius:12,
 marginBottom:30
 }}>
 
-<h3>Nieuw event</h3>
+<h3>Nieuw event maken</h3>
 
 <input
 placeholder="Event naam"
@@ -213,7 +223,7 @@ style={{padding:10,marginRight:10}}
 />
 
 <input
-placeholder="Slug"
+placeholder="Slug (bijv babyfeest)"
 value={slug}
 onChange={(e)=>setSlug(e.target.value)}
 style={{padding:10,marginRight:10}}
@@ -223,9 +233,9 @@ style={{padding:10,marginRight:10}}
 onClick={createEvent}
 style={{
 background:"#d4a24c",
-color:"white",
 border:"none",
 padding:"10px 20px",
+color:"white",
 borderRadius:6
 }}
 >
@@ -233,6 +243,8 @@ Maak event
 </button>
 
 </div>
+
+{/* EVENTS */}
 
 <div style={{
 display:"grid",
@@ -249,11 +261,13 @@ const videos = eventUploads.filter(u=>u.type==="video").length
 
 return(
 
-<div key={event.id}
+<div
+key={event.id}
 style={{
 background:"white",
 padding:20,
-borderRadius:12
+borderRadius:12,
+boxShadow:"0 10px 20px rgba(0,0,0,0.05)"
 }}
 >
 
@@ -261,14 +275,21 @@ borderRadius:12
 
 <p>/event/{event.slug}</p>
 
-<p>📷 {photos} foto's</p>
-<p>🎥 {videos} video's</p>
+<p>
+📷 {photos} foto's  
+🎥 {videos} video's
+</p>
 
-<a href={`/event/${event.slug}`} target="_blank">
+<a
+href={`/event/${event.slug}`}
+target="_blank"
+>
 Open event
 </a>
 
 <br/><br/>
+
+{/* QR */}
 
 <img
 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://memories.showverhuur.nl/event/${event.slug}`}
@@ -276,7 +297,25 @@ src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://memo
 
 <br/><br/>
 
-<input type="file" onChange={(e)=>uploadHeader(e,event.id)} />
+{/* HEADER UPLOAD */}
+
+<input
+type="file"
+onChange={(e)=>uploadHeader(e,event.id)}
+/>
+
+{event.header_image && (
+
+<img
+src={event.header_image}
+style={{
+width:"100%",
+marginTop:10,
+borderRadius:8
+}}
+/>
+
+)}
 
 <br/><br/>
 
@@ -284,13 +323,13 @@ src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://memo
 onClick={()=>downloadZip(event.id)}
 style={{
 background:"#d4a24c",
-color:"white",
 border:"none",
 padding:"8px 14px",
+color:"white",
 borderRadius:6
 }}
 >
-Download ZIP
+Download alle media (ZIP)
 </button>
 
 <br/><br/>
@@ -299,13 +338,13 @@ Download ZIP
 onClick={()=>deleteEvent(event.id)}
 style={{
 background:"red",
-color:"white",
 border:"none",
 padding:"8px 14px",
+color:"white",
 borderRadius:6
 }}
 >
-Verwijder
+Verwijder event
 </button>
 
 </div>
