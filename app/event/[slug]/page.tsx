@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect,useState,useRef } from "react"
 import { useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -11,20 +11,15 @@ const slug = params?.slug as string
 
 const [event,setEvent] = useState<any>(null)
 const [uploads,setUploads] = useState<any[]>([])
-
 const [files,setFiles] = useState<FileList | null>(null)
 const [name,setName] = useState("")
-
 const [viewer,setViewer] = useState<number | null>(null)
 
-const [touchStart,setTouchStart] = useState<number | null>(null)
-const [touchEnd,setTouchEnd] = useState<number | null>(null)
+const videoRefs = useRef<any>({})
 
 useEffect(()=>{
-
 if(!slug) return
 loadEvent()
-
 },[slug])
 
 
@@ -64,11 +59,9 @@ const {error} = await supabase.storage
 .upload(path,file)
 
 if(error){
-
 console.log(error)
 alert("Upload fout")
 continue
-
 }
 
 const {data:url} = supabase.storage
@@ -94,45 +87,28 @@ loadEvent()
 }
 
 
-function next(){
+/* VIDEO THUMBNAIL GENERATOR */
 
-if(viewer===null) return
-if(viewer < uploads.length-1) setViewer(viewer+1)
+function generateThumbnail(video:any,canvas:any){
 
-}
+const ctx = canvas.getContext("2d")
 
-function prev(){
+video.currentTime = 1
 
-if(viewer===null) return
-if(viewer>0) setViewer(viewer-1)
+video.addEventListener("loadeddata",()=>{
 
-}
+canvas.width = video.videoWidth
+canvas.height = video.videoHeight
 
+ctx.drawImage(video,0,0,canvas.width,canvas.height)
 
-function handleTouchStart(e:any){
-setTouchStart(e.targetTouches[0].clientX)
-}
-
-function handleTouchMove(e:any){
-setTouchEnd(e.targetTouches[0].clientX)
-}
-
-function handleTouchEnd(){
-
-if(!touchStart || !touchEnd) return
-
-const distance = touchStart - touchEnd
-
-if(distance > 50) next()
-if(distance < -50) prev()
+})
 
 }
 
 
 if(!event){
-
 return <div style={{padding:40}}>Loading...</div>
-
 }
 
 return(
@@ -144,7 +120,7 @@ paddingBottom:120
 }}>
 
 
-{/* HEADER IMAGE */}
+{/* HEADER */}
 
 {event.header_image && (
 
@@ -183,8 +159,7 @@ color:"#1a1a1a"
 </h1>
 
 <p style={{
-color:"#555",
-marginTop:6
+color:"#555"
 }}>
 Deel jouw foto's en video's van dit moment
 </p>
@@ -199,14 +174,12 @@ maxWidth:900,
 margin:"auto",
 background:"white",
 padding:25,
-borderRadius:14,
-boxShadow:"0 6px 20px rgba(0,0,0,0.05)"
+borderRadius:14
 }}>
 
 <h3 style={{
 fontWeight:600,
-color:"#1a1a1a",
-marginBottom:15
+marginBottom:10
 }}>
 Upload jouw herinnering
 </h3>
@@ -220,8 +193,7 @@ width:"100%",
 padding:12,
 marginBottom:12,
 border:"1px solid #ccc",
-borderRadius:8,
-color:"#000"
+borderRadius:8
 }}
 />
 
@@ -249,13 +221,11 @@ style={{display:"none"}}
 
 {files && (
 
-<p style={{marginTop:6}}>
+<p style={{marginBottom:10}}>
 {files.length} bestanden geselecteerd
 </p>
 
 )}
-
-<br/>
 
 <button
 onClick={handleUpload}
@@ -264,8 +234,7 @@ background:"#d4a24c",
 border:"none",
 padding:"12px 22px",
 color:"white",
-borderRadius:8,
-fontWeight:600
+borderRadius:8
 }}
 >
 Upload
@@ -284,11 +253,11 @@ padding:"0 20px"
 
 <h2 style={{
 fontWeight:"700",
-marginBottom:15,
-color:"#1a1a1a"
+marginBottom:15
 }}>
 Galerij (gedeeld door gasten)
 </h2>
+
 
 <div style={{
 display:"grid",
@@ -296,7 +265,41 @@ gridTemplateColumns:"repeat(3,1fr)",
 gap:8
 }}>
 
+
 {uploads.map((u,i)=>{
+
+if(u.type==="image"){
+
+return(
+
+<div key={u.id}>
+
+<img
+loading="lazy"
+src={u.file_url}
+onClick={()=>setViewer(i)}
+style={{
+width:"100%",
+aspectRatio:"1",
+objectFit:"cover",
+borderRadius:10,
+cursor:"pointer"
+}}
+/>
+
+<p style={{
+fontSize:12,
+marginTop:4
+}}>
+{u.name}
+</p>
+
+</div>
+
+)
+
+}
+
 
 return(
 
@@ -310,26 +313,14 @@ cursor:"pointer"
 }}
 >
 
-{u.type==="image" && (
-
-<img
-src={u.file_url}
-style={{
-width:"100%",
-aspectRatio:"1",
-objectFit:"cover",
-borderRadius:10
-}}
-/>
-
-)}
-
-{u.type==="video" && (
-
-<div style={{position:"relative"}}>
-
 <video
+ref={(el)=>{
+if(el){
+videoRefs.current[u.id]=el
+}
+}}
 src={u.file_url}
+muted
 preload="metadata"
 style={{
 width:"100%",
@@ -352,21 +343,12 @@ color:"white"
 
 </div>
 
-)}
-
-</div>
-
-{u.name && (
-
 <p style={{
 fontSize:12,
-marginTop:4,
-color:"#444"
+marginTop:4
 }}>
 {u.name}
 </p>
-
-)}
 
 </div>
 
@@ -379,15 +361,11 @@ color:"#444"
 </div>
 
 
-{/* FULLSCREEN VIEWER */}
+{/* VIEWER */}
 
 {viewer!==null && (
 
-<div
-onTouchStart={handleTouchStart}
-onTouchMove={handleTouchMove}
-onTouchEnd={handleTouchEnd}
-style={{
+<div style={{
 position:"fixed",
 top:0,
 left:0,
@@ -399,51 +377,8 @@ alignItems:"center",
 justifyContent:"center",
 zIndex:1000
 }}
->
-
-<button
 onClick={()=>setViewer(null)}
-style={{
-position:"absolute",
-top:20,
-right:20,
-color:"white",
-fontSize:30,
-background:"none",
-border:"none"
-}}
 >
-✕
-</button>
-
-<button
-onClick={prev}
-style={{
-position:"absolute",
-left:20,
-color:"white",
-fontSize:40,
-background:"none",
-border:"none"
-}}
->
-‹
-</button>
-
-<button
-onClick={next}
-style={{
-position:"absolute",
-right:20,
-color:"white",
-fontSize:40,
-background:"none",
-border:"none"
-}}
->
-›
-</button>
-
 
 {uploads[viewer].type==="image" && (
 
