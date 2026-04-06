@@ -13,9 +13,10 @@ const [event,setEvent] = useState<any>(null)
 const [uploads,setUploads] = useState<any[]>([])
 const [files,setFiles] = useState<FileList | null>(null)
 const [name,setName] = useState("")
-const [viewer,setViewer] = useState<number | null>(null)
+const [uploading,setUploading] = useState(false)
+const [progress,setProgress] = useState(0)
 
-const videoRefs = useRef<any>({})
+const [viewer,setViewer] = useState<number | null>(null)
 
 useEffect(()=>{
 if(!slug) return
@@ -50,6 +51,10 @@ async function handleUpload(){
 
 if(!files || !event) return
 
+setUploading(true)
+
+let count = 0
+
 for(const file of Array.from(files)){
 
 const path = `${event.id}/${Date.now()}-${file.name}`
@@ -77,8 +82,12 @@ type:file.type.startsWith("video") ? "video":"image"
 
 })
 
+count++
+setProgress(Math.round((count/files.length)*100))
+
 }
 
+setUploading(false)
 setFiles(null)
 setName("")
 
@@ -86,25 +95,6 @@ loadEvent()
 
 }
 
-
-/* VIDEO THUMBNAIL GENERATOR */
-
-function generateThumbnail(video:any,canvas:any){
-
-const ctx = canvas.getContext("2d")
-
-video.currentTime = 1
-
-video.addEventListener("loadeddata",()=>{
-
-canvas.width = video.videoWidth
-canvas.height = video.videoHeight
-
-ctx.drawImage(video,0,0,canvas.width,canvas.height)
-
-})
-
-}
 
 
 if(!event){
@@ -126,7 +116,7 @@ paddingBottom:120
 
 <div style={{
 width:"100%",
-height:220,
+height:200,
 overflow:"hidden"
 }}>
 
@@ -167,7 +157,7 @@ Deel jouw foto's en video's van dit moment
 </div>
 
 
-{/* UPLOAD */}
+{/* UPLOAD CARD */}
 
 <div style={{
 maxWidth:900,
@@ -197,14 +187,23 @@ borderRadius:8
 }}
 />
 
+
+{/* BUTTONS */}
+
+<div style={{
+display:"flex",
+gap:12,
+marginBottom:10
+}}>
+
 <label style={{
+flex:1,
 background:"#d4a24c",
 color:"white",
-padding:"10px 16px",
-borderRadius:8,
-cursor:"pointer",
-display:"inline-block",
-marginBottom:10
+padding:"14px",
+borderRadius:10,
+textAlign:"center",
+cursor:"pointer"
 }}>
 
 Kies bestanden
@@ -219,28 +218,70 @@ style={{display:"none"}}
 
 </label>
 
-{files && (
-
-<p style={{marginBottom:10}}>
-{files.length} bestanden geselecteerd
-</p>
-
-)}
-
 <button
 onClick={handleUpload}
 style={{
+flex:1,
 background:"#d4a24c",
 border:"none",
-padding:"12px 22px",
+padding:"14px",
 color:"white",
-borderRadius:8
+borderRadius:10
 }}
 >
 Upload
 </button>
 
 </div>
+
+
+{files && (
+
+<p style={{
+fontSize:14,
+marginBottom:10
+}}>
+{files.length} bestanden geselecteerd
+</p>
+
+)}
+
+
+{/* UPLOAD PROGRESS */}
+
+{uploading && (
+
+<div>
+
+<div style={{
+background:"#eee",
+height:10,
+borderRadius:6,
+overflow:"hidden",
+marginBottom:8
+}}>
+
+<div style={{
+width:`${progress}%`,
+background:"#d4a24c",
+height:"100%"
+}}/>
+
+</div>
+
+<p style={{
+fontSize:13,
+color:"#666"
+}}>
+Bezig met uploaden... klik deze pagina niet weg.
+</p>
+
+</div>
+
+)}
+
+</div>
+
 
 
 {/* GALLERY */}
@@ -272,9 +313,8 @@ if(u.type==="image"){
 
 return(
 
-<div key={u.id}>
-
 <img
+key={u.id}
 loading="lazy"
 src={u.file_url}
 onClick={()=>setViewer(i)}
@@ -287,15 +327,6 @@ cursor:"pointer"
 }}
 />
 
-<p style={{
-fontSize:12,
-marginTop:4
-}}>
-{u.name}
-</p>
-
-</div>
-
 )
 
 }
@@ -303,9 +334,8 @@ marginTop:4
 
 return(
 
-<div key={u.id}>
-
 <div
+key={u.id}
 onClick={()=>setViewer(i)}
 style={{
 position:"relative",
@@ -314,13 +344,7 @@ cursor:"pointer"
 >
 
 <video
-ref={(el)=>{
-if(el){
-videoRefs.current[u.id]=el
-}
-}}
 src={u.file_url}
-muted
 preload="metadata"
 style={{
 width:"100%",
@@ -335,20 +359,11 @@ position:"absolute",
 top:"50%",
 left:"50%",
 transform:"translate(-50%,-50%)",
-fontSize:32,
+fontSize:30,
 color:"white"
 }}>
 ▶
 </div>
-
-</div>
-
-<p style={{
-fontSize:12,
-marginTop:4
-}}>
-{u.name}
-</p>
 
 </div>
 
@@ -359,6 +374,7 @@ marginTop:4
 </div>
 
 </div>
+
 
 
 {/* VIEWER */}
