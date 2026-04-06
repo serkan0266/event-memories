@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect,useState,useRef } from "react"
 import { useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -13,10 +13,12 @@ const [event,setEvent] = useState<any>(null)
 const [uploads,setUploads] = useState<any[]>([])
 const [files,setFiles] = useState<FileList | null>(null)
 const [name,setName] = useState("")
+const [viewer,setViewer] = useState<number | null>(null)
 const [uploading,setUploading] = useState(false)
 const [progress,setProgress] = useState(0)
 
-const [viewer,setViewer] = useState<number | null>(null)
+const startX = useRef(0)
+
 
 useEffect(()=>{
 if(!slug) return
@@ -64,7 +66,6 @@ const {error} = await supabase.storage
 .upload(path,file)
 
 if(error){
-console.log(error)
 alert("Upload fout")
 continue
 }
@@ -92,6 +93,31 @@ setFiles(null)
 setName("")
 
 loadEvent()
+
+}
+
+
+/* swipe */
+
+function handleTouchStart(e:any){
+
+startX.current = e.touches[0].clientX
+
+}
+
+function handleTouchEnd(e:any){
+
+if(viewer===null) return
+
+const diff = e.changedTouches[0].clientX - startX.current
+
+if(diff > 60){
+setViewer((viewer-1+uploads.length)%uploads.length)
+}
+
+if(diff < -60){
+setViewer((viewer+1)%uploads.length)
+}
 
 }
 
@@ -156,7 +182,7 @@ Deel jouw foto's en video's van dit moment
 </div>
 
 
-{/* UPLOAD CARD */}
+{/* UPLOAD */}
 
 <div style={{
 maxWidth:900,
@@ -168,8 +194,7 @@ borderRadius:14
 
 <h3 style={{
 fontWeight:700,
-marginBottom:12,
-color:"#111"
+marginBottom:12
 }}>
 Upload jouw herinnering
 </h3>
@@ -184,14 +209,10 @@ padding:14,
 marginBottom:14,
 border:"1px solid #ccc",
 borderRadius:8,
-color:"#111",
-background:"white",
-fontSize:16
+color:"#111"
 }}
 />
 
-
-{/* BUTTONS */}
 
 <div style={{
 display:"flex",
@@ -206,10 +227,8 @@ color:"white",
 padding:"14px",
 borderRadius:10,
 textAlign:"center",
-cursor:"pointer",
-fontWeight:600
+cursor:"pointer"
 }}>
-
 Kies bestanden
 
 <input
@@ -230,10 +249,8 @@ background:"#d4a24c",
 border:"none",
 padding:"14px",
 color:"white",
-borderRadius:10,
-fontWeight:600
-}}
->
+borderRadius:10
+}}>
 Upload
 </button>
 
@@ -244,16 +261,13 @@ Upload
 
 <p style={{
 fontSize:14,
-marginBottom:10,
-color:"#333"
+marginBottom:10
 }}>
 {files.length} bestanden geselecteerd
 </p>
 
 )}
 
-
-{/* UPLOAD PROGRESS */}
 
 {uploading && (
 
@@ -288,7 +302,6 @@ Bezig met uploaden... klik deze pagina niet weg.
 )}
 
 </div>
-
 
 
 {/* GALLERY */}
@@ -338,16 +351,16 @@ cursor:"pointer"
 
 ):(
 
+
 <div
 onClick={()=>setViewer(i)}
 style={{
-position:"relative",
-cursor:"pointer"
+position:"relative"
 }}
 >
 
 <video
-src={u.file_url}
+src={u.file_url+"#t=1"}
 preload="metadata"
 style={{
 width:"100%",
@@ -377,7 +390,6 @@ color:"white"
 <p style={{
 fontSize:13,
 marginTop:6,
-fontWeight:500,
 color:"#333"
 }}>
 {u.name}
@@ -401,7 +413,10 @@ color:"#333"
 
 {viewer!==null && (
 
-<div style={{
+<div
+onTouchStart={handleTouchStart}
+onTouchEnd={handleTouchEnd}
+style={{
 position:"fixed",
 top:0,
 left:0,
@@ -413,8 +428,24 @@ alignItems:"center",
 justifyContent:"center",
 zIndex:1000
 }}
-onClick={()=>setViewer(null)}
 >
+
+<button
+onClick={()=>setViewer(null)}
+style={{
+position:"absolute",
+top:20,
+right:20,
+fontSize:26,
+color:"white",
+background:"none",
+border:"none",
+cursor:"pointer"
+}}
+>
+✕
+</button>
+
 
 {uploads[viewer].type==="image" && (
 
