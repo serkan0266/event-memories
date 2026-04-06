@@ -14,7 +14,6 @@ const [uploads,setUploads] = useState<any[]>([])
 
 const [files,setFiles] = useState<FileList | null>(null)
 const [name,setName] = useState("")
-const [message,setMessage] = useState("")
 
 const [viewer,setViewer] = useState<number | null>(null)
 
@@ -65,8 +64,11 @@ const {error} = await supabase.storage
 .upload(path,file)
 
 if(error){
+
+console.log(error)
 alert("Upload fout")
 continue
+
 }
 
 const {data:url} = supabase.storage
@@ -76,14 +78,16 @@ const {data:url} = supabase.storage
 await supabase.from("uploads").insert({
 
 event_id:event.id,
-name,
-message,
+name:name,
 file_url:url.publicUrl,
 type:file.type.startsWith("video") ? "video":"image"
 
 })
 
 }
+
+setFiles(null)
+setName("")
 
 loadEvent()
 
@@ -164,8 +168,6 @@ objectFit:"cover"
 )}
 
 
-{/* TITLE */}
-
 <div style={{
 maxWidth:900,
 margin:"auto",
@@ -216,20 +218,6 @@ onChange={(e)=>setName(e.target.value)}
 style={{
 width:"100%",
 padding:12,
-marginBottom:10,
-border:"1px solid #ccc",
-borderRadius:8,
-color:"#000"
-}}
-/>
-
-<textarea
-placeholder="Wil je iets delen?"
-value={message}
-onChange={(e)=>setMessage(e.target.value)}
-style={{
-width:"100%",
-padding:12,
 marginBottom:12,
 border:"1px solid #ccc",
 borderRadius:8,
@@ -258,6 +246,14 @@ style={{display:"none"}}
 />
 
 </label>
+
+{files && (
+
+<p style={{marginTop:6}}>
+{files.length} bestanden geselecteerd
+</p>
+
+)}
 
 <br/>
 
@@ -302,31 +298,11 @@ gap:8
 
 {uploads.map((u,i)=>{
 
-if(u.type==="image"){
-
 return(
 
-<img
-key={u.id}
-src={u.file_url}
-onClick={()=>setViewer(i)}
-style={{
-width:"100%",
-aspectRatio:"1",
-objectFit:"cover",
-borderRadius:10,
-cursor:"pointer"
-}}
-/>
-
-)
-
-}
-
-return(
+<div key={u.id}>
 
 <div
-key={u.id}
 onClick={()=>setViewer(i)}
 style={{
 position:"relative",
@@ -334,8 +310,27 @@ cursor:"pointer"
 }}
 >
 
+{u.type==="image" && (
+
+<img
+src={u.file_url}
+style={{
+width:"100%",
+aspectRatio:"1",
+objectFit:"cover",
+borderRadius:10
+}}
+/>
+
+)}
+
+{u.type==="video" && (
+
+<div style={{position:"relative"}}>
+
 <video
 src={u.file_url}
+preload="metadata"
 style={{
 width:"100%",
 aspectRatio:"1",
@@ -354,6 +349,24 @@ color:"white"
 }}>
 ▶
 </div>
+
+</div>
+
+)}
+
+</div>
+
+{u.name && (
+
+<p style={{
+fontSize:12,
+marginTop:4,
+color:"#444"
+}}>
+{u.name}
+</p>
+
+)}
 
 </div>
 
