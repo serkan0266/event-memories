@@ -13,12 +13,13 @@ const [event,setEvent] = useState<any>(null)
 const [uploads,setUploads] = useState<any[]>([])
 const [files,setFiles] = useState<FileList | null>(null)
 const [name,setName] = useState("")
-const [viewer,setViewer] = useState<number | null>(null)
 const [uploading,setUploading] = useState(false)
 const [progress,setProgress] = useState(0)
+const [uploadDone,setUploadDone] = useState(false)
+
+const [viewer,setViewer] = useState<number | null>(null)
 
 const startX = useRef(0)
-
 
 useEffect(()=>{
 if(!slug) return
@@ -54,6 +55,7 @@ async function handleUpload(){
 if(!files || !event) return
 
 setUploading(true)
+setUploadDone(false)
 
 let count = 0
 
@@ -89,8 +91,15 @@ setProgress(Math.round((count/files.length)*100))
 }
 
 setUploading(false)
+setUploadDone(true)
+
+setTimeout(()=>{
+setUploadDone(false)
+},3000)
+
 setFiles(null)
 setName("")
+setProgress(0)
 
 loadEvent()
 
@@ -100,9 +109,7 @@ loadEvent()
 /* swipe */
 
 function handleTouchStart(e:any){
-
 startX.current = e.touches[0].clientX
-
 }
 
 function handleTouchEnd(e:any){
@@ -182,7 +189,7 @@ Deel jouw foto's en video's van dit moment
 </div>
 
 
-{/* UPLOAD */}
+{/* UPLOAD CARD */}
 
 <div style={{
 maxWidth:900,
@@ -194,7 +201,8 @@ borderRadius:14
 
 <h3 style={{
 fontWeight:700,
-marginBottom:12
+marginBottom:12,
+color:"#000"
 }}>
 Upload jouw herinnering
 </h3>
@@ -213,6 +221,8 @@ color:"#111"
 }}
 />
 
+
+{/* BUTTONS */}
 
 <div style={{
 display:"flex",
@@ -243,31 +253,44 @@ style={{display:"none"}}
 
 <button
 onClick={handleUpload}
+disabled={!files || uploading}
 style={{
 flex:1,
-background:"#d4a24c",
+background: files ? "#d4a24c" : "#cfcfcf",
 border:"none",
 padding:"14px",
 color:"white",
-borderRadius:10
-}}>
-Upload
+borderRadius:10,
+cursor: files ? "pointer":"not-allowed",
+transform: uploading ? "scale(0.97)" : "scale(1)",
+transition:"0.2s"
+}}
+>
+
+{uploading ? "Upload bezig..." : "Upload"}
+
 </button>
 
 </div>
 
 
+{/* FILE COUNT */}
+
 {files && (
 
 <p style={{
 fontSize:14,
-marginBottom:10
+marginBottom:10,
+color:"green",
+fontWeight:600
 }}>
 {files.length} bestanden geselecteerd
 </p>
 
 )}
 
+
+{/* PROGRESS */}
 
 {uploading && (
 
@@ -278,13 +301,14 @@ background:"#eee",
 height:10,
 borderRadius:6,
 overflow:"hidden",
-marginBottom:8
+marginBottom:6
 }}>
 
 <div style={{
 width:`${progress}%`,
 background:"#d4a24c",
-height:"100%"
+height:"100%",
+transition:"0.3s"
 }}/>
 
 </div>
@@ -294,14 +318,31 @@ fontSize:14,
 color:"red",
 fontWeight:"bold"
 }}>
-Bezig met uploaden... klik deze pagina niet weg.
+Bezig met uploaden... ({progress}%)
+klik deze pagina niet weg.
 </p>
 
 </div>
 
 )}
 
+
+{/* UPLOAD DONE MESSAGE */}
+
+{uploadDone && (
+
+<p style={{
+marginTop:10,
+color:"green",
+fontWeight:700
+}}>
+Upload voltooid ✅
+</p>
+
+)}
+
 </div>
+
 
 
 {/* GALLERY */}
@@ -439,8 +480,7 @@ right:20,
 fontSize:26,
 color:"white",
 background:"none",
-border:"none",
-cursor:"pointer"
+border:"none"
 }}
 >
 ✕
