@@ -42,12 +42,14 @@ if(u.type==="video") videos++
 
 })
 
+const uploadCount = uploads?.length || 0
+
 list.push({
 ...e,
-uploads:uploads?.length || 0,
+uploads: uploadCount,
 photos,
 videos,
-storage:uploads?.length*5 || 0
+storage: uploadCount * 5
 })
 
 }
