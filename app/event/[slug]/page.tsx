@@ -1,11 +1,13 @@
 "use client"
 
 import { useEffect,useState } from "react"
+import { useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-export default function EventPage({ params }: { params: { slug: string } }){
+export default function EventPage(){
 
-const slug = params.slug
+const params = useParams()
+const slug = params?.slug as string
 
 const [event,setEvent] = useState<any>(null)
 const [uploads,setUploads] = useState<any[]>([])
@@ -15,12 +17,14 @@ const [name,setName] = useState("")
 const [message,setMessage] = useState("")
 
 useEffect(()=>{
+
+if(slug){
 loadEvent()
-},[])
+}
+
+},[slug])
 
 async function loadEvent(){
-
-if(!slug) return
 
 const {data:eventData,error} = await supabase
 .from("events")
@@ -29,7 +33,7 @@ const {data:eventData,error} = await supabase
 .single()
 
 if(error){
-console.error(error)
+console.error("Event error:",error)
 return
 }
 
@@ -84,7 +88,10 @@ loadEvent()
 if(!event){
 
 return(
-<div style={{padding:40}}>
+<div style={{
+padding:40,
+fontSize:20
+}}>
 Loading...
 </div>
 )
@@ -126,14 +133,22 @@ marginBottom:20
 placeholder="Naam"
 value={name}
 onChange={(e)=>setName(e.target.value)}
-style={{width:"100%",padding:10,marginBottom:10}}
+style={{
+width:"100%",
+padding:10,
+marginBottom:10
+}}
 />
 
 <textarea
 placeholder="Wil je iets delen?"
 value={message}
 onChange={(e)=>setMessage(e.target.value)}
-style={{width:"100%",padding:10,marginBottom:10}}
+style={{
+width:"100%",
+padding:10,
+marginBottom:10
+}}
 />
 
 <input
