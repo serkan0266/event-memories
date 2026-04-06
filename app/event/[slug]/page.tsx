@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect,useState,useRef } from "react"
+import { useEffect,useState } from "react"
 import { useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -96,7 +96,6 @@ loadEvent()
 }
 
 
-
 if(!event){
 return <div style={{padding:40}}>Loading...</div>
 }
@@ -141,15 +140,15 @@ padding:"25px 20px"
 }}>
 
 <h1 style={{
-fontSize:30,
-fontWeight:"700",
-color:"#1a1a1a"
+fontSize:32,
+fontWeight:"800",
+color:"#111"
 }}>
 {event.name}
 </h1>
 
 <p style={{
-color:"#555"
+color:"#444"
 }}>
 Deel jouw foto's en video's van dit moment
 </p>
@@ -168,8 +167,9 @@ borderRadius:14
 }}>
 
 <h3 style={{
-fontWeight:600,
-marginBottom:10
+fontWeight:700,
+marginBottom:12,
+color:"#111"
 }}>
 Upload jouw herinnering
 </h3>
@@ -180,10 +180,13 @@ value={name}
 onChange={(e)=>setName(e.target.value)}
 style={{
 width:"100%",
-padding:12,
-marginBottom:12,
+padding:14,
+marginBottom:14,
 border:"1px solid #ccc",
-borderRadius:8
+borderRadius:8,
+color:"#111",
+background:"white",
+fontSize:16
 }}
 />
 
@@ -193,7 +196,7 @@ borderRadius:8
 <div style={{
 display:"flex",
 gap:12,
-marginBottom:10
+marginBottom:12
 }}>
 
 <label style={{
@@ -203,7 +206,8 @@ color:"white",
 padding:"14px",
 borderRadius:10,
 textAlign:"center",
-cursor:"pointer"
+cursor:"pointer",
+fontWeight:600
 }}>
 
 Kies bestanden
@@ -226,7 +230,8 @@ background:"#d4a24c",
 border:"none",
 padding:"14px",
 color:"white",
-borderRadius:10
+borderRadius:10,
+fontWeight:600
 }}
 >
 Upload
@@ -239,7 +244,8 @@ Upload
 
 <p style={{
 fontSize:14,
-marginBottom:10
+marginBottom:10,
+color:"#333"
 }}>
 {files.length} bestanden geselecteerd
 </p>
@@ -270,8 +276,9 @@ height:"100%"
 </div>
 
 <p style={{
-fontSize:13,
-color:"#666"
+fontSize:14,
+color:"red",
+fontWeight:"bold"
 }}>
 Bezig met uploaden... klik deze pagina niet weg.
 </p>
@@ -293,8 +300,9 @@ padding:"0 20px"
 }}>
 
 <h2 style={{
-fontWeight:"700",
-marginBottom:15
+fontWeight:"800",
+marginBottom:18,
+color:"#000"
 }}>
 Galerij (gedeeld door gasten)
 </h2>
@@ -303,18 +311,19 @@ Galerij (gedeeld door gasten)
 <div style={{
 display:"grid",
 gridTemplateColumns:"repeat(3,1fr)",
-gap:8
+gap:10
 }}>
 
 
 {uploads.map((u,i)=>{
 
-if(u.type==="image"){
-
 return(
 
+<div key={u.id}>
+
+{u.type==="image" ? (
+
 <img
-key={u.id}
 loading="lazy"
 src={u.file_url}
 onClick={()=>setViewer(i)}
@@ -327,15 +336,9 @@ cursor:"pointer"
 }}
 />
 
-)
-
-}
-
-
-return(
+):(
 
 <div
-key={u.id}
 onClick={()=>setViewer(i)}
 style={{
 position:"relative",
@@ -364,6 +367,23 @@ color:"white"
 }}>
 ▶
 </div>
+
+</div>
+
+)}
+
+{u.name && (
+
+<p style={{
+fontSize:13,
+marginTop:6,
+fontWeight:500,
+color:"#333"
+}}>
+{u.name}
+</p>
+
+)}
 
 </div>
 
