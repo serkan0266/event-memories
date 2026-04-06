@@ -84,31 +84,29 @@ loadData()
 async function uploadHeader(e:any,eventId:string){
 
 const file = e.target.files[0]
-
 if(!file) return
 
-alert("uploaden...")
-
-const fileName = `${Date.now()}-${file.name}`
+const fileName = `header-${Date.now()}-${file.name}`
 
 const {error} = await supabase.storage
 .from("uploads")
-.upload(`headers/${fileName}`,file)
+.upload(fileName,file)
 
 if(error){
-alert("upload fout")
+alert("Upload fout")
 return
 }
 
 const {data} = supabase.storage
 .from("uploads")
-.getPublicUrl(`headers/${fileName}`)
+.getPublicUrl(fileName)
 
-await supabase.from("events")
+await supabase
+.from("events")
 .update({header_image:data.publicUrl})
 .eq("id",eventId)
 
-alert("header geupload")
+alert("Header opgeslagen")
 
 loadData()
 
@@ -118,14 +116,16 @@ async function downloadZip(eventId:string){
 
 const zip = new JSZip()
 
-const files = uploads.filter(u=>u.event_id===eventId)
+const eventUploads = uploads.filter(u=>u.event_id===eventId)
 
-for(const file of files){
+for(const file of eventUploads){
 
-const res = await fetch(file.file_url)
-const blob = await res.blob()
+const response = await fetch(file.file_url)
+const blob = await response.blob()
 
-zip.file(file.file_url.split("/").pop(),blob)
+const fileName = file.file_url.split("/").pop()
+
+zip.file(fileName!,blob)
 
 }
 
@@ -150,8 +150,7 @@ background:"#f5efe6"
 <div style={{
 background:"white",
 padding:40,
-borderRadius:12,
-boxShadow:"0 10px 30px rgba(0,0,0,0.1)"
+borderRadius:12
 }}>
 
 <h2>Admin login</h2>
@@ -160,7 +159,7 @@ boxShadow:"0 10px 30px rgba(0,0,0,0.1)"
 type="password"
 placeholder="code"
 value={code}
-onChange={e=>setCode(e.target.value)}
+onChange={(e)=>setCode(e.target.value)}
 style={{padding:10}}
 />
 
@@ -209,14 +208,14 @@ marginBottom:30
 <input
 placeholder="Event naam"
 value={name}
-onChange={e=>setName(e.target.value)}
+onChange={(e)=>setName(e.target.value)}
 style={{padding:10,marginRight:10}}
 />
 
 <input
 placeholder="Slug"
 value={slug}
-onChange={e=>setSlug(e.target.value)}
+onChange={(e)=>setSlug(e.target.value)}
 style={{padding:10,marginRight:10}}
 />
 
