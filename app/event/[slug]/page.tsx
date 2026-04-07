@@ -14,8 +14,8 @@ const [event,setEvent] = useState<any>(null)
 const [name,setName] = useState("")
 const [message,setMessage] = useState("")
 const [uploading,setUploading] = useState(false)
-const [uploadCount,setUploadCount] = useState(0)
 const [progress,setProgress] = useState(0)
+const [count,setCount] = useState(0)
 
 useEffect(()=>{
 loadEvent()
@@ -41,20 +41,18 @@ if(!files || !event) return
 
 if(files.length > 20){
 
-alert("Maximaal 20 foto's tegelijk uploaden")
+alert("Maximaal 20 afbeeldingen tegelijk")
 
 return
 
 }
 
 setUploading(true)
-setUploadCount(files.length)
+setCount(files.length)
 
 let done = 0
 
 for(const file of Array.from(files) as File[]){
-
-if(!file.type.startsWith("image")) continue
 
 const path = `${event.id}/${Date.now()}-${file.name}`
 
@@ -92,15 +90,11 @@ setProgress(Math.round((done/files.length)*100))
 setUploading(false)
 setProgress(0)
 
-alert("Upload klaar!")
+alert("Upload voltooid")
 
 }
 
-if(!event){
-
-return <div style={{padding:40}}>Loading...</div>
-
-}
+if(!event) return <div style={{padding:40}}>Loading...</div>
 
 return(
 
@@ -132,14 +126,14 @@ fontSize:46
 </h1>
 
 <p style={{
+fontSize:18,
 marginTop:10,
-fontSize:16,
 lineHeight:1.6
 }}>
 Laat ons zien hoe je je vermaakt! Laat je foto's deel uitmaken van de herinneringen aan deze speciale dag ❤️
 </p>
 
-<div style={{marginTop:35}}>
+<div style={{marginTop:30}}>
 
 <input
 placeholder="Naam"
@@ -167,18 +161,26 @@ marginBottom:20
 }}
 />
 
+<div style={{
+display:"flex",
+flexDirection:"column",
+gap:15
+}}>
+
 <label style={{
-padding:"18px 25px",
+width:"100%",
+padding:"18px",
 border:"2px solid #ddd",
 borderRadius:12,
 cursor:"pointer",
-display:"inline-flex",
+display:"flex",
 alignItems:"center",
+justifyContent:"center",
 gap:10,
 fontSize:18
 }}>
 
-<span>🖼</span>
+<span style={{fontSize:22}}>📷</span>
 
 Afbeeldingen toevoegen
 
@@ -194,53 +196,49 @@ style={{display:"none"}}
 
 <p style={{
 fontSize:13,
-marginTop:8,
-color:"#666"
+color:"#666",
+marginTop:-10
 }}>
 Maximaal 20 afbeeldingen tegelijk
 </p>
+
+<button
+onClick={()=>window.open("https://www.dropbox.com/request/2qE262FJbK3WfdjhAvM1")}
+style={{
+width:"100%",
+padding:"18px",
+border:"2px solid #ddd",
+borderRadius:12,
+background:"#fff",
+cursor:"pointer",
+display:"flex",
+alignItems:"center",
+justifyContent:"center",
+gap:10,
+fontSize:18
+}}
+>
+
+<span style={{fontSize:22}}>🎥</span>
+
+Video toevoegen
+
+</button>
+
+</div>
 
 {uploading && (
 
 <p style={{
 color:"red",
-marginTop:15,
+marginTop:20,
 fontWeight:"bold"
 }}>
-Bezig met uploaden van {uploadCount} foto's ({progress}%)
+Bezig met uploaden van {count} foto's ({progress}%)
 Klik niet weg
 </p>
 
 )}
-
-<div style={{marginTop:25}}>
-
-<button
-onClick={()=>window.open("https://www.dropbox.com/request/2qE262FJbK3WfdjhAvM1")}
-style={{
-padding:"18px 25px",
-borderRadius:12,
-border:"none",
-background:"#d4a24c",
-color:"#fff",
-fontSize:18,
-cursor:"pointer"
-}}
->
-
-🎥 Video uploaden
-
-</button>
-
-<p style={{
-fontSize:13,
-marginTop:8,
-color:"#666"
-}}>
-Gebruik deze knop voor video's
-</p>
-
-</div>
 
 </div>
 
