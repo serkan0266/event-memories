@@ -17,7 +17,9 @@ const [uploading,setUploading] = useState(false)
 const [uploadCount,setUploadCount] = useState(0)
 const [progress,setProgress] = useState(0)
 
-useEffect(()=>{ loadEvent() },[])
+useEffect(()=>{
+loadEvent()
+},[])
 
 async function loadEvent(){
 
@@ -33,7 +35,7 @@ setEvent(data)
 
 async function handleFiles(e:any){
 
-const files = e.target.files
+const files = e.target.files as FileList
 
 if(!files || !event) return
 
@@ -42,7 +44,7 @@ setUploadCount(files.length)
 
 let done = 0
 
-for(const file of Array.from(files)){
+for(const file of Array.from(files) as File[]){
 
 const path = `${event.id}/${Date.now()}-${file.name}`
 
@@ -51,8 +53,11 @@ const {error} = await supabase.storage
 .upload(path,file)
 
 if(error){
+
 alert("Upload fout")
+setUploading(false)
 return
+
 }
 
 const {data:url} = supabase.storage
@@ -63,7 +68,7 @@ await supabase.from("uploads").insert({
 
 event_id:event.id,
 file_url:url.publicUrl,
-type:file.type.startsWith("video")?"video":"image",
+type:file.type.startsWith("video") ? "video" : "image",
 name:name,
 message:message
 
@@ -81,7 +86,11 @@ alert("Upload klaar!")
 
 }
 
-if(!event) return <div style={{padding:40}}>Loading...</div>
+if(!event){
+
+return <div style={{padding:40}}>Loading...</div>
+
+}
 
 return(
 
@@ -176,7 +185,8 @@ style={{display:"none"}}
 
 <p style={{
 color:"red",
-marginTop:15
+marginTop:15,
+fontWeight:"bold"
 }}>
 Bezig met uploaden van {uploadCount} bestanden ({progress}%)  
 Klik niet weg
