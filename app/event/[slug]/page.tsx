@@ -8,6 +8,7 @@ export default function EventPage(){
 
 const params = useParams()
 const router = useRouter()
+
 const slug = params.slug as string
 
 const [event,setEvent] = useState<any>(null)
@@ -17,7 +18,11 @@ const [uploading,setUploading] = useState(false)
 const [progress,setProgress] = useState(0)
 const [count,setCount] = useState(0)
 
-useEffect(()=>{ loadEvent() },[])
+useEffect(()=>{
+
+loadEvent()
+
+},[])
 
 async function loadEvent(){
 
@@ -37,9 +42,10 @@ const files = e.target.files as FileList
 
 if(!files || !event) return
 
-if(files.length > 20){
+if(files.length > 100){
 
 alert("Maximaal 20 afbeeldingen tegelijk")
+
 return
 
 }
@@ -82,6 +88,7 @@ message:message
 })
 
 done++
+
 setProgress(Math.round((done/files.length)*100))
 
 }
@@ -93,7 +100,11 @@ alert("Upload voltooid")
 
 }
 
-if(!event) return <div style={{padding:40}}>Loading...</div>
+if(!event){
+
+return <div style={{padding:40}}>Loading...</div>
+
+}
 
 return(
 
@@ -103,6 +114,8 @@ margin:"auto",
 padding:20,
 textAlign:"center"
 }}>
+
+{/* HEADER - DIRECT LADEN */}
 
 {event.header_image && (
 
@@ -131,7 +144,7 @@ fontSize:18,
 marginTop:10,
 lineHeight:1.6
 }}>
-Samen verzamelen we alle foto’s en video’s van deze speciale dag ❤️
+Laat ons zien hoe je je vermaakt! Laat je foto's deel uitmaken van de herinneringen aan deze speciale dag ❤️
 </p>
 
 <div style={{marginTop:30}}>
@@ -228,6 +241,8 @@ Video toevoegen
 
 </div>
 
+{/* UPLOAD STATUS */}
+
 {uploading && (
 
 <p style={{
@@ -235,8 +250,8 @@ color:"red",
 marginTop:20,
 fontWeight:"bold"
 }}>
-Bezig met uploaden van {count} foto's ({progress}%)
-Klik niet weg
+Bezig met uploaden van {count} afbeeldingen ({progress}%)
+Klik deze pagina niet weg
 </p>
 
 )}
@@ -257,6 +272,8 @@ fontSize:16
 >
 Galerij bekijken
 </button>
+
+{/* LOGO */}
 
 <div style={{
 marginTop:50,
