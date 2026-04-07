@@ -6,15 +6,21 @@ import QRCode from "react-qr-code"
 
 export default function AdminPage(){
 
-const ADMIN_PASSWORD = "66"
+const ADMIN_PASSWORD="66"
 
-const [loggedIn,setLoggedIn] = useState(false)
-const [password,setPassword] = useState("")
+const [loggedIn,setLoggedIn]=useState(false)
+const [password,setPassword]=useState("")
 
-const [events,setEvents] = useState<any[]>([])
-const [name,setName] = useState("")
-const [slug,setSlug] = useState("")
+const [events,setEvents]=useState<any[]>([])
+const [stats,setStats]=useState({
+events:0,
+photos:0,
+videos:0,
+storage:0
+})
 
+const [name,setName]=useState("")
+const [slug,setSlug]=useState("")
 
 useEffect(()=>{
 if(loggedIn){
@@ -25,14 +31,10 @@ loadEvents()
 
 function login(){
 
-if(password === ADMIN_PASSWORD){
-
+if(password===ADMIN_PASSWORD){
 setLoggedIn(true)
-
 }else{
-
 alert("Verkeerd wachtwoord")
-
 }
 
 }
@@ -40,24 +42,28 @@ alert("Verkeerd wachtwoord")
 
 async function loadEvents(){
 
-const {data} = await supabase
+const {data}=await supabase
 .from("events")
 .select("*")
 .order("created_at",{ascending:false})
 
 if(!data) return
 
-let list:any[] = []
+let list:any[]=[]
+
+let totalPhotos=0
+let totalVideos=0
+let totalStorage=0
 
 for(const e of data){
 
-const {data:uploads} = await supabase
+const {data:uploads}=await supabase
 .from("uploads")
 .select("*")
 .eq("event_id",e.id)
 
-let photos = 0
-let videos = 0
+let photos=0
+let videos=0
 
 uploads?.forEach((u:any)=>{
 
@@ -66,30 +72,42 @@ if(u.type==="video") videos++
 
 })
 
-const uploadCount = uploads?.length || 0
+const storage=(uploads?.length||0)*5
+
+totalPhotos+=photos
+totalVideos+=videos
+totalStorage+=storage
 
 list.push({
 ...e,
-uploads: uploadCount,
+uploads:uploads?.length||0,
 photos,
 videos,
-storage: uploadCount * 5
+storage
 })
 
 }
 
 setEvents(list)
 
+setStats({
+events:data.length,
+photos:totalPhotos,
+videos:totalVideos,
+storage:totalStorage
+})
+
 }
 
 
 async function createEvent(){
 
-if(!name || !slug) return
+if(!name||!slug) return
 
 await supabase.from("events").insert({
 name,
-slug
+slug,
+status:"open"
 })
 
 setName("")
@@ -111,15 +129,29 @@ loadEvents()
 }
 
 
+async function toggleEvent(id:string,current:string){
+
+const newStatus=current==="open"?"closed":"open"
+
+await supabase
+.from("events")
+.update({status:newStatus})
+.eq("id",id)
+
+loadEvents()
+
+}
+
+
 async function uploadHeader(e:any,eventId:string){
 
-const file = e.target.files[0]
+const file=e.target.files[0]
 
 if(!file) return
 
-const path = `headers/${Date.now()}-${file.name}`
+const path=`headers/${Date.now()}-${file.name}`
 
-const {error} = await supabase.storage
+const {error}=await supabase.storage
 .from("uploads")
 .upload(path,file)
 
@@ -128,7 +160,7 @@ alert("Upload fout")
 return
 }
 
-const {data:url} = supabase.storage
+const {data:url}=supabase.storage
 .from("uploads")
 .getPublicUrl(path)
 
@@ -144,7 +176,42 @@ loadEvents()
 }
 
 
-/* LOGIN SCREEN */
+function downloadQR(){
+
+const svg=document.querySelector("svg")
+
+if(!svg) return
+
+const data=new XMLSerializer().serializeToString(svg)
+
+const canvas=document.createElement("canvas")
+
+const img=new Image()
+
+img.src="data:image/svg+xml;base64,"+btoa(data)
+
+img.onload=()=>{
+
+canvas.width=img.width
+canvas.height=img.height
+
+const ctx=canvas.getContext("2d")
+
+ctx?.drawImage(img,0,0)
+
+const a=document.createElement("a")
+
+a.download="qr-code.png"
+a.href=canvas.toDataURL()
+
+a.click()
+
+}
+
+}
+
+
+/* LOGIN */
 
 if(!loggedIn){
 
@@ -159,7 +226,7 @@ flexDirection:"column",
 background:"#f5efe6"
 }}>
 
-<h2>Admin login</h2>
+<h2>Memories Admin</h2>
 
 <input
 type="password"
@@ -178,7 +245,7 @@ marginBottom:10
 onClick={login}
 style={{
 background:"#d4a24c",
-color:"white",
+color:"#fff",
 border:"none",
 padding:"10px 20px",
 borderRadius:8
@@ -194,126 +261,148 @@ Login
 }
 
 
-/* ADMIN PANEL */
+/* ADMIN */
 
 return(
 
 <div style={{
 background:"#f5efe6",
 minHeight:"100vh",
-padding:40
+padding:40,
+fontFamily:"sans-serif"
 }}>
 
-<h1>Memories Admin</h1>
+<h1 style={{marginBottom:30}}>Memories Admin</h1>
+
+
+{/* DASHBOARD */}
+
+<div style={{
+display:"grid",
+gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
+gap:20,
+marginBottom:40
+}}>
+
+<div style={cardStyle}>
+<h3>Events</h3>
+<p style={statNumber}>{stats.events}</p>
+</div>
+
+<div style={cardStyle}>
+<h3>Foto's</h3>
+<p style={statNumber}>{stats.photos}</p>
+</div>
+
+<div style={cardStyle}>
+<h3>Video's</h3>
+<p style={statNumber}>{stats.videos}</p>
+</div>
+
+<div style={cardStyle}>
+<h3>Storage</h3>
+<p style={statNumber}>{stats.storage} MB</p>
+</div>
+
+</div>
+
 
 {/* CREATE EVENT */}
 
 <div style={{
-background:"#eee",
-padding:20,
-borderRadius:12,
-marginBottom:30
+...cardStyle,
+marginBottom:40
 }}>
 
 <h3>Nieuw event maken</h3>
 
+<div style={{display:"flex",gap:10,marginTop:10,flexWrap:"wrap"}}>
+
 <input
-placeholder="Event naam"
+placeholder="Event naam (titel)"
 value={name}
 onChange={(e)=>setName(e.target.value)}
-style={{padding:10,marginRight:10}}
+style={inputStyle}
 />
 
 <input
-placeholder="Slug (bijv babyfeest)"
+placeholder="Slug"
 value={slug}
 onChange={(e)=>setSlug(e.target.value)}
-style={{padding:10,marginRight:10}}
+style={inputStyle}
 />
 
-<button
-onClick={createEvent}
-style={{
-background:"#d4a24c",
-color:"white",
-border:"none",
-padding:"10px 16px",
-borderRadius:6
-}}
->
+<button onClick={createEvent} style={goldButton}>
 Maak event
 </button>
 
 </div>
 
+</div>
+
+
+{/* EVENTS */}
+
+<h2 style={{marginBottom:20}}>Events</h2>
 
 <div style={{
-display:"flex",
-flexWrap:"wrap",
-gap:30
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,320px)",
+gap:25
 }}>
 
 {events.map((e)=>{
 
-const url = `https://memories.showverhuur.nl/event/${e.slug}`
+const url=`https://memories.showverhuur.nl/event/${e.slug}`
 
 return(
 
-<div key={e.id}
-style={{
-background:"#f3f3f3",
-padding:20,
-borderRadius:14,
-width:320
-}}
->
+<div key={e.id} style={cardStyle}>
 
 <h3>{e.name}</h3>
 
-<p>/event/{e.slug}</p>
+<p style={{opacity:.6}}>/event/{e.slug}</p>
 
-<p>📤 Uploads: {e.uploads}</p>
-<p>📸 Foto's: {e.photos}</p>
-<p>🎥 Video's: {e.videos}</p>
+<p>Status: <b style={{color:e.status==="open"?"green":"red"}}>{e.status}</b></p>
+
+<p>📸 {e.photos} foto's</p>
+<p>🎥 {e.videos} video's</p>
 <p>💾 Storage: {e.storage} MB</p>
 
-<a href={url} target="_blank">Open event</a>
-
-<div style={{marginTop:10}}>
-<QRCode value={url} size={150} />
+<div style={{margin:"10px 0"}}>
+<QRCode value={url} size={120}/>
 </div>
 
-<div style={{marginTop:10}}>
 <input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
-</div>
 
-<a
-href={`/api/zip?event=${e.id}`}
-style={{
-display:"block",
-marginTop:10,
-background:"#d4a24c",
-color:"white",
-padding:"10px",
-borderRadius:6,
-textAlign:"center"
-}}
->
-Download alle media (ZIP)
+<a href={url} target="_blank" style={buttonStyle}>
+Open Event
 </a>
+
+<button style={buttonStyle}>
+Uploads bekijken
+</button>
+
+<a href={`/api/zip?event=${e.id}`} style={goldButton}>
+Download ZIP
+</a>
+
+<button onClick={downloadQR} style={buttonStyle}>
+Download QR
+</button>
+
+<button
+onClick={()=>toggleEvent(e.id,e.status)}
+style={buttonStyle}
+>
+{e.status==="open"?"Event sluiten":"Event openen"}
+</button>
 
 <button
 onClick={()=>deleteEvent(e.id)}
-style={{
-marginTop:10,
-background:"red",
-color:"white",
-border:"none",
-padding:"10px",
-borderRadius:6
-}}
+style={deleteButton}
 >
-Verwijder event
+Verwijderen
 </button>
 
 </div>
@@ -328,4 +417,57 @@ Verwijder event
 
 )
 
+}
+
+
+/* STYLES */
+
+const cardStyle={
+background:"#fff",
+padding:20,
+borderRadius:14,
+boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
+}
+
+const statNumber={
+fontSize:28,
+fontWeight:"bold"
+}
+
+const inputStyle={
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc"
+}
+
+const buttonStyle={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+border:"1px solid #ddd",
+background:"#fff",
+cursor:"pointer"
+}
+
+const goldButton={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"#d4a24c",
+color:"#fff",
+border:"none",
+cursor:"pointer"
+}
+
+const deleteButton={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"red",
+color:"#fff",
+border:"none",
+cursor:"pointer"
 }
