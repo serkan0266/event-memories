@@ -6,13 +6,37 @@ import QRCode from "react-qr-code"
 
 export default function AdminPage(){
 
+const ADMIN_PASSWORD = "66"
+
+const [loggedIn,setLoggedIn] = useState(false)
+const [password,setPassword] = useState("")
+
 const [events,setEvents] = useState<any[]>([])
 const [name,setName] = useState("")
 const [slug,setSlug] = useState("")
 
+
 useEffect(()=>{
+if(loggedIn){
 loadEvents()
-},[])
+}
+},[loggedIn])
+
+
+function login(){
+
+if(password === ADMIN_PASSWORD){
+
+setLoggedIn(true)
+
+}else{
+
+alert("Verkeerd wachtwoord")
+
+}
+
+}
+
 
 async function loadEvents(){
 
@@ -120,6 +144,58 @@ loadEvents()
 }
 
 
+/* LOGIN SCREEN */
+
+if(!loggedIn){
+
+return(
+
+<div style={{
+height:"100vh",
+display:"flex",
+justifyContent:"center",
+alignItems:"center",
+flexDirection:"column",
+background:"#f5efe6"
+}}>
+
+<h2>Admin login</h2>
+
+<input
+type="password"
+placeholder="Wachtwoord"
+value={password}
+onChange={(e)=>setPassword(e.target.value)}
+style={{
+padding:12,
+borderRadius:8,
+border:"1px solid #ccc",
+marginBottom:10
+}}
+/>
+
+<button
+onClick={login}
+style={{
+background:"#d4a24c",
+color:"white",
+border:"none",
+padding:"10px 20px",
+borderRadius:8
+}}
+>
+Login
+</button>
+
+</div>
+
+)
+
+}
+
+
+/* ADMIN PANEL */
+
 return(
 
 <div style={{
@@ -129,7 +205,6 @@ padding:40
 }}>
 
 <h1>Memories Admin</h1>
-
 
 {/* CREATE EVENT */}
 
@@ -172,8 +247,6 @@ Maak event
 </div>
 
 
-{/* EVENTS */}
-
 <div style={{
 display:"flex",
 flexWrap:"wrap",
@@ -199,42 +272,20 @@ width:320
 
 <p>/event/{e.slug}</p>
 
-
-{/* STATS */}
-
 <p>📤 Uploads: {e.uploads}</p>
 <p>📸 Foto's: {e.photos}</p>
 <p>🎥 Video's: {e.videos}</p>
 <p>💾 Storage: {e.storage} MB</p>
 
-
-<a href={url} target="_blank">
-Open event
-</a>
-
-
-{/* QR */}
+<a href={url} target="_blank">Open event</a>
 
 <div style={{marginTop:10}}>
-
 <QRCode value={url} size={150} />
-
 </div>
-
-
-{/* HEADER UPLOAD */}
 
 <div style={{marginTop:10}}>
-
-<input
-type="file"
-onChange={(ev)=>uploadHeader(ev,e.id)}
-/>
-
+<input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
 </div>
-
-
-{/* ZIP */}
 
 <a
 href={`/api/zip?event=${e.id}`}
@@ -250,9 +301,6 @@ textAlign:"center"
 >
 Download alle media (ZIP)
 </a>
-
-
-{/* DELETE */}
 
 <button
 onClick={()=>deleteEvent(e.id)}
