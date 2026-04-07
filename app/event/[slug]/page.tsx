@@ -108,7 +108,7 @@ fontSize:46
 
 <p style={{
 marginTop:10,
-fontSize:18,
+fontSize:16,
 lineHeight:1.6
 }}>
 Laat ons zien hoe je je vermaakt! Laat je foto's en video's deel uitmaken van de herinneringen aan deze speciale dag voor ons ❤️
