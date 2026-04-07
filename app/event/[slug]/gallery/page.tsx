@@ -8,39 +8,13 @@ export default function Gallery(){
 
 const params = useParams()
 const router = useRouter()
-
 const slug = params.slug as string
 
 const [uploads,setUploads] = useState<any[]>([])
-const [page,setPage] = useState(0)
-const [loading,setLoading] = useState(false)
-const [eventId,setEventId] = useState<string>("")
 
-const limit = 60
+useEffect(()=>{ load() },[])
 
-useEffect(()=>{
-init()
-},[])
-
-useEffect(()=>{
-function handleScroll(){
-
-if(
-window.innerHeight + window.scrollY >=
-document.body.offsetHeight - 500
-){
-loadMore()
-}
-
-}
-
-window.addEventListener("scroll",handleScroll)
-
-return ()=>window.removeEventListener("scroll",handleScroll)
-
-},[uploads,page,eventId])
-
-async function init(){
+async function load(){
 
 const {data:eventData} = await supabase
 .from("events")
@@ -48,35 +22,13 @@ const {data:eventData} = await supabase
 .eq("slug",slug)
 .single()
 
-setEventId(eventData.id)
-
-loadMore(eventData.id)
-
-}
-
-async function loadMore(customEventId?:string){
-
-if(loading) return
-
-setLoading(true)
-
-const id = customEventId || eventId
-
 const {data} = await supabase
 .from("uploads")
 .select("*")
-.eq("event_id",id)
+.eq("event_id",eventData.id)
 .order("created_at",{ascending:false})
-.range(page*limit,(page+1)*limit-1)
 
-if(data){
-
-setUploads(prev=>[...prev,...data])
-setPage(prev=>prev+1)
-
-}
-
-setLoading(false)
+setUploads(data || [])
 
 }
 
@@ -90,9 +42,7 @@ margin:"auto"
 
 <button
 onClick={()=>router.push(`/event/${slug}`)}
-style={{
-marginBottom:10
-}}
+style={{marginBottom:10}}
 >
 ← Terug
 </button>
@@ -106,11 +56,9 @@ Galerij (gedeeld door gasten)
 </h2>
 
 <div style={{
-
 display:"grid",
 gridTemplateColumns:"repeat(3,1fr)",
 gap:8
-
 }}>
 
 {uploads.map((u,i)=>{
@@ -128,7 +76,6 @@ cursor:"pointer"
 
 <img
 src={u.file_url}
-loading="lazy"
 style={{
 width:"100%",
 aspectRatio:"1/1",
@@ -138,7 +85,6 @@ borderRadius:8
 />
 
 <div style={{
-
 position:"absolute",
 bottom:0,
 left:0,
@@ -147,19 +93,14 @@ padding:6,
 background:"linear-gradient(transparent,rgba(0,0,0,0.7))",
 color:"#fff",
 fontSize:12
-
 }}>
 
 <b>{u.name}</b>
 
 {u.message && (
-
-<div style={{
-fontSize:11
-}}>
+<div style={{fontSize:11}}>
 {u.message}
 </div>
-
 )}
 
 </div>
@@ -171,17 +112,6 @@ fontSize:11
 })}
 
 </div>
-
-{loading && (
-
-<p style={{
-textAlign:"center",
-marginTop:20
-}}>
-Meer foto's laden...
-</p>
-
-)}
 
 </div>
 

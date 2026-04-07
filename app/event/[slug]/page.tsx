@@ -17,9 +17,7 @@ const [uploading,setUploading] = useState(false)
 const [progress,setProgress] = useState(0)
 const [count,setCount] = useState(0)
 
-useEffect(()=>{
-loadEvent()
-},[])
+useEffect(()=>{ loadEvent() },[])
 
 async function loadEvent(){
 
@@ -42,7 +40,6 @@ if(!files || !event) return
 if(files.length > 20){
 
 alert("Maximaal 20 afbeeldingen tegelijk")
-
 return
 
 }
@@ -53,6 +50,8 @@ setCount(files.length)
 let done = 0
 
 for(const file of Array.from(files) as File[]){
+
+if(!file.type.startsWith("image")) continue
 
 const path = `${event.id}/${Date.now()}-${file.name}`
 
