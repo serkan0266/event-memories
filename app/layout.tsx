@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Great_Vibes } from "next/font/google"
 
+export const vibes = Great_Vibes({
+  weight: "400",
+  subsets: ["latin"]
+})
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

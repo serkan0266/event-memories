@@ -16,6 +16,26 @@ const startIndex = Number(search.get("i")||0)
 const [uploads,setUploads] = useState<any[]>([])
 const [index,setIndex] = useState(startIndex)
 
+let touchStart = 0
+
+function handleTouchStart(e:any){
+touchStart = e.touches[0].clientX
+}
+
+function handleTouchEnd(e:any){
+
+let touchEnd = e.changedTouches[0].clientX
+
+if(touchStart - touchEnd > 50){
+setIndex(Math.min(index+1,uploads.length-1))
+}
+
+if(touchEnd - touchStart > 50){
+setIndex(Math.max(index-1,0))
+}
+
+}
+
 useEffect(()=>{
 load()
 },[])
@@ -44,7 +64,10 @@ const item = uploads[index]
 
 return(
 
-<div style={{
+<div
+onTouchStart={handleTouchStart}
+onTouchEnd={handleTouchEnd}
+style={{
 background:"#000",
 height:"100vh",
 display:"flex",
@@ -52,7 +75,8 @@ flexDirection:"column",
 justifyContent:"center",
 alignItems:"center",
 color:"#fff"
-}}>
+}}
+>
 
 <button
 onClick={()=>router.back()}
@@ -60,7 +84,7 @@ style={{
 position:"absolute",
 top:20,
 right:20,
-fontSize:20
+fontSize:22
 }}
 >
 ✕
@@ -69,6 +93,7 @@ fontSize:20
 <p>{index+1} / {uploads.length}</p>
 
 {item.type==="image" && (
+
 <img
 src={item.file_url}
 style={{
@@ -76,9 +101,11 @@ maxHeight:"80vh",
 maxWidth:"100%"
 }}
 />
+
 )}
 
 {item.type==="video" && (
+
 <video
 src={item.file_url}
 controls
@@ -86,27 +113,12 @@ style={{
 maxHeight:"80vh"
 }}
 />
+
 )}
 
-<p>{item.name}</p>
-
-<div style={{marginTop:20}}>
-
-<button
-onClick={()=>setIndex(index-1)}
-disabled={index===0}
->
-←
-</button>
-
-<button
-onClick={()=>setIndex(index+1)}
-disabled={index===uploads.length-1}
->
-→
-</button>
-
-</div>
+<p style={{marginTop:10}}>
+{item.name}
+</p>
 
 </div>
 
