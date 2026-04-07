@@ -114,7 +114,7 @@ textAlign:"center"
 <img
 src={event.header_image}
 loading="eager"
-fetchpriority="high"
+fetchPriority="high"
 style={{
 width:"100%",
 borderRadius:16,
