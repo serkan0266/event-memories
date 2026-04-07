@@ -114,9 +114,26 @@ maxHeight:"80vh"
 
 )}
 
-<p style={{marginTop:10}}>
+<div style={{
+marginTop:15,
+textAlign:"center",
+maxWidth:500
+}}>
+
+<p style={{
+fontWeight:"bold",
+fontSize:18
+}}>
 {item.name}
 </p>
+
+<p style={{
+opacity:0.9
+}}>
+{item.message}
+</p>
+
+</div>
 
 </div>
 

@@ -11,9 +11,10 @@ const router = useRouter()
 const slug = params.slug as string
 
 const [event,setEvent] = useState<any>(null)
-const [files,setFiles] = useState<FileList|null>(null)
 const [name,setName] = useState("")
+const [message,setMessage] = useState("")
 const [uploading,setUploading] = useState(false)
+const [uploadCount,setUploadCount] = useState(0)
 const [progress,setProgress] = useState(0)
 
 useEffect(()=>{ loadEvent() },[])
@@ -30,11 +31,14 @@ setEvent(data)
 
 }
 
-async function upload(){
+async function handleFiles(e:any){
+
+const files = e.target.files
 
 if(!files || !event) return
 
 setUploading(true)
+setUploadCount(files.length)
 
 let done = 0
 
@@ -56,10 +60,13 @@ const {data:url} = supabase.storage
 .getPublicUrl(path)
 
 await supabase.from("uploads").insert({
+
 event_id:event.id,
 file_url:url.publicUrl,
 type:file.type.startsWith("video")?"video":"image",
-name:name
+name:name,
+message:message
+
 })
 
 done++
@@ -68,10 +75,9 @@ setProgress(Math.round((done/files.length)*100))
 }
 
 setUploading(false)
-setFiles(null)
 setProgress(0)
 
-alert("Upload klaar")
+alert("Upload klaar!")
 
 }
 
@@ -125,7 +131,20 @@ width:"100%",
 padding:14,
 borderRadius:10,
 border:"1px solid #ddd",
-marginBottom:15
+marginBottom:10
+}}
+/>
+
+<textarea
+placeholder="Laat een bericht achter..."
+value={message}
+onChange={(e)=>setMessage(e.target.value)}
+style={{
+width:"100%",
+padding:14,
+borderRadius:10,
+border:"1px solid #ddd",
+marginBottom:20
 }}
 />
 
@@ -147,36 +166,20 @@ Foto of video toevoegen
 <input
 type="file"
 multiple
-onChange={(e)=>setFiles(e.target.files)}
+onChange={handleFiles}
 style={{display:"none"}}
 />
 
 </label>
 
-<p style={{color:"green",marginTop:10}}>
-{files ? `${files.length} bestanden geselecteerd` : ""}
-</p>
-
-<button
-disabled={!files}
-onClick={upload}
-style={{
-marginTop:15,
-background:files?"#d4a24c":"#ccc",
-color:"#fff",
-padding:"14px 28px",
-borderRadius:10,
-border:"none",
-fontSize:16
-}}
->
-Upload
-</button>
-
 {uploading && (
 
-<p style={{color:"red",marginTop:10}}>
-Bezig met uploaden ({progress}%) klik niet weg
+<p style={{
+color:"red",
+marginTop:15
+}}>
+Bezig met uploaden van {uploadCount} bestanden ({progress}%)  
+Klik niet weg
 </p>
 
 )}
