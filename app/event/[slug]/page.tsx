@@ -42,14 +42,6 @@ const files = e.target.files as FileList
 
 if(!files || !event) return
 
-if(files.length > 100){
-
-alert("Maximaal 20 afbeeldingen tegelijk")
-
-return
-
-}
-
 setUploading(true)
 setCount(files.length)
 
@@ -115,7 +107,7 @@ padding:20,
 textAlign:"center"
 }}>
 
-{/* HEADER - DIRECT LADEN */}
+{/* HEADER */}
 
 {event.header_image && (
 
@@ -272,8 +264,6 @@ fontSize:16
 >
 Galerij bekijken
 </button>
-
-{/* LOGO */}
 
 <div style={{
 marginTop:50,
