@@ -7,22 +7,22 @@ process.env.NEXT_PUBLIC_SUPABASE_URL!,
 process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET(req:Request){
+export async function GET(req: Request) {
 
 const { searchParams } = new URL(req.url)
 const eventId = searchParams.get("event")
 
-if(!eventId){
-return NextResponse.json({error:"No event id"}, {status:400})
+if (!eventId) {
+return NextResponse.json({ error: "No event id" }, { status: 400 })
 }
 
-const {data:uploads} = await supabase
+const { data: uploads } = await supabase
 .from("uploads")
 .select("*")
-.eq("event_id",eventId)
+.eq("event_id", eventId)
 
-if(!uploads){
-return NextResponse.json({error:"No uploads"})
+if (!uploads || uploads.length === 0) {
+return NextResponse.json({ error: "No uploads found" })
 }
 
 const zip = new JSZip()
@@ -30,28 +30,30 @@ const zip = new JSZip()
 const mediaFolder = zip.folder("Media")
 const messagesFolder = zip.folder("Berichten")
 
-const messages:Record<string,string> = {}
+const messages: Record<string, string> = {}
 
-for(const u of uploads){
+/* LOOP UPLOADS */
 
-/* MEDIA */
+for (const u of uploads) {
 
-if(u.file_url){
+/* MEDIA FILES */
+
+if (u.file_url) {
 
 const res = await fetch(u.file_url)
 const buffer = await res.arrayBuffer()
 
 const filename = u.file_url.split("/").pop()
 
-mediaFolder?.file(filename,buffer)
+mediaFolder?.file(filename!, buffer)
 
 }
 
 /* BERICHTEN */
 
-if(u.name && u.message){
+if (u.name && u.message) {
 
-if(!messages[u.name]){
+if (!messages[u.name]) {
 messages[u.name] = u.message
 }
 
@@ -59,26 +61,30 @@ messages[u.name] = u.message
 
 }
 
-/* CSV FILE */
+/* CSV MAKEN */
 
 let csv = "Naam,Bericht\n"
 
-for(const name in messages){
+for (const name in messages) {
 
-const message = messages[name].replace(/,/g," ")
+const message = messages[name].replace(/,/g, " ")
 
 csv += `${name},${message}\n`
 
 }
 
-messagesFolder?.file("berichten.csv",csv)
+messagesFolder?.file("berichten.csv", csv)
 
-const content = await zip.generateAsync({type:"nodebuffer"})
+/* ZIP GENEREREN */
 
-return new NextResponse(content,{
-headers:{
-"Content-Type":"application/zip",
-"Content-Disposition":"attachment; filename=event-download.zip"
+const content = await zip.generateAsync({
+type: "uint8array"
+})
+
+return new NextResponse(content as any, {
+headers: {
+"Content-Type": "application/zip",
+"Content-Disposition": "attachment; filename=event-download.zip"
 }
 })
 
