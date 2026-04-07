@@ -8,14 +8,11 @@ export default function Gallery(){
 
 const params = useParams()
 const router = useRouter()
-
 const slug = params.slug as string
 
 const [uploads,setUploads] = useState<any[]>([])
 
-useEffect(()=>{
-load()
-},[])
+useEffect(()=>{ load() },[])
 
 async function load(){
 
@@ -30,7 +27,7 @@ const {data} = await supabase
 .select("*")
 .eq("event_id",eventData.id)
 .order("created_at",{ascending:false})
-.limit(60)
+.limit(120)
 
 setUploads(data||[])
 
@@ -44,7 +41,11 @@ return(
 ← Terug
 </button>
 
-<h2 style={{textAlign:"center"}}>
+<h2 style={{
+textAlign:"center",
+fontWeight:"bold",
+marginTop:10
+}}>
 Galerij (gedeeld door gasten)
 </h2>
 

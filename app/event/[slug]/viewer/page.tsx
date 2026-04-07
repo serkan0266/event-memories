@@ -36,9 +36,7 @@ setIndex(Math.max(index-1,0))
 
 }
 
-useEffect(()=>{
-load()
-},[])
+useEffect(()=>{ load() },[])
 
 async function load(){
 
@@ -84,7 +82,7 @@ style={{
 position:"absolute",
 top:20,
 right:20,
-fontSize:22
+fontSize:24
 }}
 >
 ✕
