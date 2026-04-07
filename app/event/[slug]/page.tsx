@@ -136,7 +136,7 @@ fontSize:18,
 marginTop:10,
 lineHeight:1.6
 }}>
-Laat ons zien hoe je je vermaakt! Laat je foto's deel uitmaken van de herinneringen aan deze speciale dag ❤️
+Alle momenten van deze speciale dag komen hier samen ❤️
 </p>
 
 <div style={{marginTop:30}}>
