@@ -33,11 +33,19 @@ setEvent(data)
 
 }
 
-async function handleFiles(e:any){
+async function handlePhotos(e:any){
 
 const files = e.target.files as FileList
 
 if(!files || !event) return
+
+if(files.length > 20){
+
+alert("Maximaal 20 foto's tegelijk uploaden")
+
+return
+
+}
 
 setUploading(true)
 setUploadCount(files.length)
@@ -45,6 +53,8 @@ setUploadCount(files.length)
 let done = 0
 
 for(const file of Array.from(files) as File[]){
+
+if(!file.type.startsWith("image")) continue
 
 const path = `${event.id}/${Date.now()}-${file.name}`
 
@@ -68,7 +78,7 @@ await supabase.from("uploads").insert({
 
 event_id:event.id,
 file_url:url.publicUrl,
-type:file.type.startsWith("video") ? "video" : "image",
+type:"image",
 name:name,
 message:message
 
@@ -126,7 +136,7 @@ marginTop:10,
 fontSize:16,
 lineHeight:1.6
 }}>
-Laat ons zien hoe je je vermaakt! Laat je foto's en video's deel uitmaken van de herinneringen aan deze speciale dag voor ons ❤️
+Laat ons zien hoe je je vermaakt! Laat je foto's deel uitmaken van de herinneringen aan deze speciale dag ❤️
 </p>
 
 <div style={{marginTop:35}}>
@@ -168,18 +178,27 @@ gap:10,
 fontSize:18
 }}>
 
-<span>📷</span>
+<span>🖼</span>
 
-Foto of video toevoegen
+Afbeeldingen toevoegen
 
 <input
 type="file"
 multiple
-onChange={handleFiles}
+accept="image/*"
+onChange={handlePhotos}
 style={{display:"none"}}
 />
 
 </label>
+
+<p style={{
+fontSize:13,
+marginTop:8,
+color:"#666"
+}}>
+Maximaal 20 afbeeldingen tegelijk
+</p>
 
 {uploading && (
 
@@ -188,11 +207,40 @@ color:"red",
 marginTop:15,
 fontWeight:"bold"
 }}>
-Bezig met uploaden van {uploadCount} bestanden ({progress}%)  
+Bezig met uploaden van {uploadCount} foto's ({progress}%)
 Klik niet weg
 </p>
 
 )}
+
+<div style={{marginTop:25}}>
+
+<button
+onClick={()=>window.open("https://www.dropbox.com/request/2qE262FJbK3WfdjhAvM1")}
+style={{
+padding:"18px 25px",
+borderRadius:12,
+border:"none",
+background:"#d4a24c",
+color:"#fff",
+fontSize:18,
+cursor:"pointer"
+}}
+>
+
+🎥 Video uploaden
+
+</button>
+
+<p style={{
+fontSize:13,
+marginTop:8,
+color:"#666"
+}}>
+Gebruik deze knop voor video's
+</p>
+
+</div>
 
 </div>
 
