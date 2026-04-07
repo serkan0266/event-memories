@@ -107,6 +107,13 @@ padding:20,
 textAlign:"center"
 }}>
 
+{/* GOOGLE FONT */}
+
+<link
+href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap"
+rel="stylesheet"
+/>
+
 {/* HEADER */}
 
 {event.header_image && (
@@ -125,8 +132,8 @@ marginBottom:25
 )}
 
 <h1 style={{
-fontFamily:"cursive",
-fontSize:46
+fontFamily:"'Great Vibes', cursive",
+fontSize:52
 }}>
 {event.name}
 </h1>
