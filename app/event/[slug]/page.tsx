@@ -107,6 +107,8 @@ padding:20,
 textAlign:"center"
 }}>
 
+{/* HEADER */}
+
 {event.header_image && (
 
 <img
@@ -230,6 +232,8 @@ Video toevoegen
 </button>
 
 </div>
+
+{/* UPLOAD STATUS */}
 
 {uploading && (
 
