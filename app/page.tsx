@@ -1,25 +1,97 @@
 "use client"
 
-import Link from "next/link"
+import { useEffect } from "react"
 
 export default function Home(){
 
 const gold="#C9A46C"
+const green="#22c55e"
 const light="#F7F3EE"
 const dark="#111827"
 
 const whatsapp="https://wa.me/31612394000"
 
+useEffect(()=>{
+
+document.querySelectorAll("a[href^='#']").forEach(anchor=>{
+anchor.addEventListener("click",function(e){
+e.preventDefault()
+const target=document.querySelector(this.getAttribute("href")!)
+target?.scrollIntoView({behavior:"smooth"})
+})
+})
+
+},[])
+
 return(
 
 <main style={{fontFamily:"system-ui",background:light}}>
+
+{/* HEADER */}
+
+<header style={{
+position:"sticky",
+top:0,
+background:"white",
+padding:"18px 30px",
+zIndex:100,
+borderBottom:"1px solid #eee"
+}}>
+
+<div style={{
+maxWidth:1200,
+margin:"0 auto",
+display:"flex",
+alignItems:"center",
+justifyContent:"space-between"
+}}>
+
+{/* LOGO */}
+
+<img
+src="/memories-logo.png"
+style={{height:32}}
+/>
+
+{/* NAV */}
+
+<div style={{display:"flex",gap:25,alignItems:"center"}}>
+
+<a href="#hoe"
+style={{textDecoration:"none",color:"#333"}}>
+Hoe werkt het
+</a>
+
+<a href="#demo"
+style={{textDecoration:"none",color:"#333"}}>
+Gratis demo
+</a>
+
+<a
+href={whatsapp}
+style={{
+background:gold,
+padding:"10px 18px",
+borderRadius:8,
+color:"white",
+textDecoration:"none",
+fontWeight:600
+}}>
+Start event
+</a>
+
+</div>
+
+</div>
+
+</header>
+
 
 
 {/* HERO */}
 
 <section style={{
-padding:"120px 20px",
-background:"linear-gradient(180deg,#F7F3EE,#ffffff)"
+padding:"120px 20px"
 }}>
 
 <div style={{
@@ -60,27 +132,25 @@ background:gold,
 padding:"14px 28px",
 borderRadius:10,
 color:"white",
-fontWeight:600,
-textDecoration:"none"
+textDecoration:"none",
+fontWeight:600
 }}>
 Start je event
 </a>
 
-<Link href="/demo"
+<a href="#demo"
 style={{
 border:`2px solid ${gold}`,
 padding:"14px 28px",
 borderRadius:10
 }}>
-Ontdek hoe het werkt
-</Link>
+Bekijk demo
+</a>
 
 </div>
 
 </div>
 
-
-{/* HERO IMAGE */}
 
 <img
 src="https://images.unsplash.com/photo-1519741497674-611481863552"
@@ -97,190 +167,94 @@ boxShadow:"0 30px 80px rgba(0,0,0,0.15)"
 
 
 
-{/* EVENT TYPES */}
+{/* HOE WERKT HET */}
 
-<section style={{
-padding:"60px 20px",
+<section id="hoe" style={{padding:"120px 20px"}}>
+
+<div style={{
+maxWidth:1100,
+margin:"0 auto",
 textAlign:"center"
 }}>
 
-<h2 style={{fontSize:36}}>
-Maak jouw evenement
-<span style={{color:gold}}> onvergetelijk</span>
+<h2 style={{fontSize:38}}>
+Hoe werkt het
 </h2>
 
 <div style={{
-marginTop:30,
-display:"flex",
-flexWrap:"wrap",
-gap:12,
-justifyContent:"center"
+marginTop:60,
+display:"grid",
+gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",
+gap:30
 }}>
 
 {[
-"Bruiloft",
-"Gender Reveal",
-"Baby Shower",
-"Verjaardag",
-"Bedrijfsfeest"
-].map((item,i)=>(
+"Wij maken jullie eventpagina",
+"Plaats QR-code op het event",
+"Gasten uploaden foto's",
+"Download alles na afloop"
+].map((step,i)=>(
 
 <div key={i}
 style={{
-border:`2px solid ${gold}`,
-padding:"8px 18px",
-borderRadius:20
+background:"white",
+padding:35,
+borderRadius:20,
+boxShadow:"0 20px 60px rgba(0,0,0,0.06)"
 }}
 >
-{item}
+
+<h3>{i+1}</h3>
+
+<p style={{marginTop:10,opacity:.7}}>
+{step}
+</p>
+
 </div>
 
 ))}
 
 </div>
 
-</section>
-
-
-
-{/* FEATURE BLOCK */}
-
-<section style={{
-padding:"120px 20px"
-}}>
-
-<div style={{
-maxWidth:1100,
-margin:"0 auto",
-display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",
-gap:60,
-alignItems:"center"
-}}>
-
-<div>
-
-<h2 style={{fontSize:34}}>
-Op jouw jubileum is iedereen
-de fotograaf
-</h2>
-
-<ul style={{marginTop:20,lineHeight:2}}>
-
-<li>Unieke QR-code</li>
-<li>Deelbare link naar je event</li>
-<li>Geen app nodig, werkt op alle apparaten</li>
-<li>Galerij met foto's en video's</li>
-<li>Persoonlijke vormgeving</li>
-
-</ul>
-
-</div>
-
-<img
-src="https://images.unsplash.com/photo-1504198453319-5ce911bafcde"
-style={{width:"100%",borderRadius:20}}
-/>
-
 </div>
 
 </section>
 
 
 
-{/* PHONE SECTION */}
+{/* DEMO */}
 
-<section style={{
+<section id="demo" style={{
 padding:"120px 20px",
 background:"#ffffff"
 }}>
 
 <div style={{
-maxWidth:1100,
+maxWidth:1000,
 margin:"0 auto",
-display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",
-gap:60,
-alignItems:"center"
+textAlign:"center"
 }}>
 
-<img
-src="https://images.unsplash.com/photo-1512428559087-560fa5ceab42"
-style={{
-width:"100%",
-borderRadius:30
-}}
-/>
-
-<div>
-
-<h2 style={{fontSize:36}}>
-Simpel, veilig en
-<span style={{color:gold}}> voor iedereen</span>
+<h2 style={{fontSize:38}}>
+Bekijk een voorbeeld pagina
 </h2>
 
-<p style={{marginTop:20,opacity:.7}}>
-
-Gasten kunnen direct foto's en video's uploaden
-zonder een account te maken.
-
+<p style={{marginTop:15,opacity:.7}}>
+Zo ziet een Memories eventpagina eruit.
 </p>
 
-<ul style={{marginTop:20,lineHeight:2}}>
-
-<li>Ongelimiteerd aantal gebruikers</li>
-<li>Persoonlijke berichten van gasten</li>
-<li>Alles geleverd in één download</li>
-
-</ul>
-
-</div>
-
-</div>
-
-</section>
-
-
-
-{/* SUPPORT */}
-
-<section style={{
-padding:"80px 20px"
-}}>
-
-<div style={{
-maxWidth:900,
-margin:"0 auto",
-background:dark,
-color:"white",
-padding:40,
-borderRadius:20,
-display:"flex",
-justifyContent:"space-between",
-flexWrap:"wrap",
-gap:20,
-alignItems:"center"
-}}>
-
-<div>
-
-<h3>Een écht goede klantenservice</h3>
-
-<p style={{opacity:.7}}>
-Wij helpen je altijd als je vragen hebt.
-</p>
-
-</div>
-
-<a href={whatsapp}
+<a
+href="/demo"
 style={{
+marginTop:30,
+display:"inline-block",
 background:gold,
-padding:"12px 22px",
+padding:"14px 28px",
 borderRadius:10,
 color:"white",
 textDecoration:"none"
 }}>
-WhatsApp ons
+Open demo
 </a>
 
 </div>
@@ -289,14 +263,14 @@ WhatsApp ons
 
 
 
-{/* PRICING */}
+{/* PAKKET */}
 
 <section style={{
 padding:"120px 20px",
 textAlign:"center"
 }}>
 
-<h2 style={{fontSize:36}}>
+<h2 style={{fontSize:38}}>
 Memories pakket
 </h2>
 
@@ -310,23 +284,42 @@ borderRadius:20,
 boxShadow:"0 30px 80px rgba(0,0,0,0.1)"
 }}>
 
-<h3 style={{fontSize:50}}>€49</h3>
+<h3 style={{fontSize:48}}>€49</h3>
 
-<ul style={{lineHeight:2,marginTop:20,textAlign:"left"}}>
+<ul style={{
+lineHeight:2,
+marginTop:20,
+textAlign:"left",
+listStyle:"none",
+padding:0
+}}>
 
-<li>Unieke QR-code</li>
-<li>Deelbare link naar je event</li>
-<li>Geen app nodig</li>
-<li>Galerij met foto's en video's</li>
-<li>Persoonlijke vormgeving</li>
-<li>Ongelimiteerd aantal gebruikers</li>
-<li>Persoonlijke berichten van gasten</li>
-<li>Alles geleverd in een bestand</li>
-<li>Eigen header design</li>
+{[
+"Unieke QR-code",
+"Deelbare link naar je event",
+"Geen app nodig, werkt op alle apparaten",
+"Galerij met foto's en video's",
+"Persoonlijke vormgeving",
+"Ongelimiteerd aantal gebruikers",
+"Persoonlijke berichten van gasten",
+"Alles geleverd in een bestand",
+"Eigen header design voor pagina"
+].map((item,i)=>(
+
+<li key={i} style={{display:"flex",gap:10}}>
+
+<span style={{color:green,fontWeight:700}}>✔</span>
+
+{item}
+
+</li>
+
+))}
 
 </ul>
 
-<a href={whatsapp}
+<a
+href={whatsapp}
 style={{
 marginTop:30,
 display:"inline-block",
@@ -349,38 +342,13 @@ Start je event
 {/* FOOTER */}
 
 <footer style={{
-background:"#1f2937",
+background:dark,
 color:"white",
-padding:"60px 20px"
+padding:"60px 20px",
+textAlign:"center"
 }}>
 
-<div style={{
-maxWidth:1100,
-margin:"0 auto",
-display:"flex",
-justifyContent:"space-between",
-flexWrap:"wrap",
-gap:30
-}}>
-
-<div>
-
-<h3>Showverhuur Memories</h3>
-
-<p style={{opacity:.7}}>
-Alle herinneringen van je event op één plek.
-</p>
-
-</div>
-
-<div>
-
-<p>Contact</p>
-<p>info@showverhuur.nl</p>
-
-</div>
-
-</div>
+<p>© Showverhuur Memories</p>
 
 </footer>
 
