@@ -3,24 +3,25 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import QRCode from "react-qr-code"
+import React from "react"
 
-export default function AdminPage() {
+export default function AdminPage(){
 
-const ADMIN_PASSWORD = "66"
+const ADMIN_PASSWORD="66"
 
-const [loggedIn,setLoggedIn] = useState(false)
-const [password,setPassword] = useState("")
+const [loggedIn,setLoggedIn]=useState(false)
+const [password,setPassword]=useState("")
 
-const [events,setEvents] = useState<any[]>([])
-const [uploads,setUploads] = useState<any[]>([])
+const [events,setEvents]=useState<any[]>([])
+const [uploads,setUploads]=useState<any[]>([])
 
-const [viewEvent,setViewEvent] = useState<string | null>(null)
-const [editing,setEditing] = useState<any>(null)
+const [viewEvent,setViewEvent]=useState<string | null>(null)
+const [editing,setEditing]=useState<any>(null)
 
-const [name,setName] = useState("")
-const [slug,setSlug] = useState("")
+const [name,setName]=useState("")
+const [slug,setSlug]=useState("")
 
-const [stats,setStats] = useState({
+const [stats,setStats]=useState({
 events:0,
 photos:0,
 videos:0,
@@ -35,33 +36,31 @@ loadEvents()
 
 
 function login(){
-
-if(password === ADMIN_PASSWORD){
+if(password===ADMIN_PASSWORD){
 setLoggedIn(true)
 }else{
 alert("Verkeerd wachtwoord")
 }
-
 }
 
 
 async function loadEvents(){
 
-const {data} = await supabase
+const {data}=await supabase
 .from("events")
 .select("*")
 .order("created_at",{ascending:false})
 
 if(!data) return
 
-let list:any[] = []
+let list:any[]=[]
 let totalPhotos=0
 let totalVideos=0
 let totalStorage=0
 
 for(const e of data){
 
-const {data:uploads} = await supabase
+const {data:uploads}=await supabase
 .from("uploads")
 .select("*")
 .eq("event_id",e.id)
@@ -144,6 +143,11 @@ loadEvents()
 
 async function viewUploads(eventId:string){
 
+if(viewEvent===eventId){
+setViewEvent(null)
+return
+}
+
 setViewEvent(eventId)
 
 const {data}=await supabase
@@ -182,7 +186,6 @@ loadEvents()
 async function uploadHeader(e:any,eventId:string){
 
 const file=e.target.files[0]
-
 if(!file) return
 
 const path=`headers/${Date.now()}-${file.name}`
@@ -246,14 +249,7 @@ if(!loggedIn){
 
 return(
 
-<div style={{
-height:"100vh",
-display:"flex",
-justifyContent:"center",
-alignItems:"center",
-flexDirection:"column",
-background:"#f5efe6"
-}}>
+<div style={loginStyle}>
 
 <h2>Memories Admin</h2>
 
@@ -262,19 +258,10 @@ type="password"
 placeholder="Wachtwoord"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-style={{padding:10,borderRadius:8,border:"1px solid #ccc",marginBottom:10}}
+style={inputStyle}
 />
 
-<button
-onClick={login}
-style={{
-padding:"10px 20px",
-borderRadius:8,
-border:"none",
-background:"#d4a24c",
-color:"#fff"
-}}
->
+<button onClick={login} style={goldBtn}>
 Login
 </button>
 
@@ -287,40 +274,35 @@ Login
 
 return(
 
-<div style={{background:"#f5efe6",minHeight:"100vh",padding:40}}>
+<div style={containerStyle}>
 
 <h1>Memories Admin</h1>
 
 
 {/* DASHBOARD */}
 
-<div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
-gap:20,
-marginBottom:40
-}}>
+<div style={statsGrid}>
 
-<div style={card}><h3>Events</h3><b>{stats.events}</b></div>
-<div style={card}><h3>Foto's</h3><b>{stats.photos}</b></div>
-<div style={card}><h3>Video's</h3><b>{stats.videos}</b></div>
-<div style={card}><h3>Storage</h3><b>{stats.storage} MB</b></div>
+<div style={cardStyle}><h3>Events</h3><b>{stats.events}</b></div>
+<div style={cardStyle}><h3>Foto's</h3><b>{stats.photos}</b></div>
+<div style={cardStyle}><h3>Video's</h3><b>{stats.videos}</b></div>
+<div style={cardStyle}><h3>Storage</h3><b>{stats.storage} MB</b></div>
 
 </div>
 
 
 {/* CREATE EVENT */}
 
-<div style={card}>
+<div style={cardStyle}>
 
 <h3>Nieuw event maken</h3>
 
 <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
 
-<input placeholder="Event naam (titel)" value={name} onChange={(e)=>setName(e.target.value)} style={input}/>
-<input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={input}/>
+<input placeholder="Event naam (titel)" value={name} onChange={(e)=>setName(e.target.value)} style={inputStyle}/>
+<input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={inputStyle}/>
 
-<button onClick={createEvent} style={gold}>Maak event</button>
+<button onClick={createEvent} style={goldBtn}>Maak event</button>
 
 </div>
 
@@ -330,11 +312,7 @@ marginBottom:40
 <h2 style={{marginTop:40}}>Events</h2>
 
 
-<div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,320px)",
-gap:25
-}}>
+<div style={eventGrid}>
 
 {events.map((e)=>{
 
@@ -342,7 +320,7 @@ const url=`https://memories.showverhuur.nl/event/${e.slug}`
 
 return(
 
-<div key={e.id} style={card}>
+<div key={e.id} style={cardStyle}>
 
 <h3>{e.name}</h3>
 
@@ -351,7 +329,7 @@ return(
 <select
 value={e.status}
 onChange={(ev)=>toggleEvent(e.id,ev.target.value)}
-style={btn}
+style={btnStyle}
 >
 <option value="open">✅ Event open</option>
 <option value="closed">❌ Event gesloten</option>
@@ -365,30 +343,27 @@ style={btn}
 
 <input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} style={{marginTop:10}}/>
 
-<a href={url} target="_blank" style={btn}>Open Event</a>
+<a href={url} target="_blank" style={btnStyle}>Open Event</a>
 
-<button
-style={btn}
-onClick={()=>{
-
-if(viewEvent===e.id){
-setViewEvent(null)
-}else{
-viewUploads(e.id)
-}
-
-}}
->
+<button onClick={()=>viewUploads(e.id)} style={btnStyle}>
 Uploads bekijken
 </button>
 
-<button onClick={downloadQR} style={btn}>Download QR</button>
+<button onClick={downloadQR} style={btnStyle}>
+Download QR
+</button>
 
-<button onClick={()=>editEvent(e)} style={btn}>Bewerken</button>
+<button onClick={()=>editEvent(e)} style={btnStyle}>
+Bewerken
+</button>
 
-<a href={`/api/zip?event=${e.id}`} style={gold}>Download ZIP</a>
+<a href={`/api/zip?event=${e.id}`} style={goldBtn}>
+Download ZIP
+</a>
 
-<button onClick={()=>deleteEvent(e.id)} style={del}>Verwijderen</button>
+<button onClick={()=>deleteEvent(e.id)} style={deleteBtn}>
+Verwijderen
+</button>
 
 </div>
 
@@ -407,17 +382,13 @@ Uploads bekijken
 
 <h2>Uploads</h2>
 
-<div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,200px)",
-gap:20
-}}>
+<div style={uploadGrid}>
 
 {uploads.map((u)=>{
 
 return(
 
-<div key={u.id} style={card}>
+<div key={u.id} style={cardStyle}>
 
 {u.type==="image" && (
 <img src={u.file_url} style={{width:"100%",borderRadius:6}}/>
@@ -440,24 +411,6 @@ return(
 
 )}
 
-
-{/* EDIT EVENT */}
-
-{editing && (
-
-<div style={{marginTop:40,...card}}>
-
-<h2>Event bewerken</h2>
-
-<input value={editing.name} onChange={(e)=>setEditing({...editing,name:e.target.value})} style={input}/>
-<input value={editing.slug} onChange={(e)=>setEditing({...editing,slug:e.target.value})} style={input}/>
-
-<button onClick={saveEvent} style={gold}>Opslaan</button>
-
-</div>
-
-)}
-
 </div>
 
 )
@@ -465,8 +418,86 @@ return(
 }
 
 
-const card={background:"#fff",padding:20,borderRadius:12,boxShadow:"0 3px 10px rgba(0,0,0,0.05)"}
-const input={padding:10,borderRadius:8,border:"1px solid #ccc"}
-const btn={display:"block",marginTop:10,padding:"10px",borderRadius:8,border:"1px solid #ddd",background:"#fff",width:"100%",textAlign:"center"}
-const gold={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"#d4a24c",color:"#fff",border:"none",width:"100%"}
-const del={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"red",color:"#fff",border:"none",width:"100%"}
+/* STYLES */
+
+const containerStyle:React.CSSProperties={
+background:"#f5efe6",
+minHeight:"100vh",
+padding:40
+}
+
+const loginStyle:React.CSSProperties={
+height:"100vh",
+display:"flex",
+justifyContent:"center",
+alignItems:"center",
+flexDirection:"column",
+background:"#f5efe6"
+}
+
+const statsGrid:React.CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
+gap:20,
+marginBottom:40
+}
+
+const eventGrid:React.CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,320px)",
+gap:25
+}
+
+const uploadGrid:React.CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,200px)",
+gap:20
+}
+
+const cardStyle:React.CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
+}
+
+const inputStyle:React.CSSProperties={
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc"
+}
+
+const btnStyle:React.CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+border:"1px solid #ddd",
+background:"#fff",
+width:"100%",
+textAlign:"center",
+cursor:"pointer"
+}
+
+const goldBtn:React.CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"#d4a24c",
+color:"#fff",
+border:"none",
+width:"100%",
+textAlign:"center"
+}
+
+const deleteBtn:React.CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"red",
+color:"#fff",
+border:"none",
+width:"100%"
+}
