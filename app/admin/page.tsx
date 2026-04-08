@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect,useState } from "react"
 import { supabase } from "@/lib/supabase"
 import QRCode from "react-qr-code"
 import React from "react"
@@ -36,11 +36,13 @@ loadEvents()
 
 
 function login(){
+
 if(password===ADMIN_PASSWORD){
 setLoggedIn(true)
 }else{
 alert("Verkeerd wachtwoord")
 }
+
 }
 
 
@@ -154,7 +156,6 @@ const {data}=await supabase
 .from("uploads")
 .select("*")
 .eq("event_id",eventId)
-.order("created_at",{ascending:false})
 
 setUploads(data||[])
 
@@ -162,7 +163,7 @@ setUploads(data||[])
 
 
 function editEvent(event:any){
-setEditing(event)
+setEditing({...event})
 }
 
 
@@ -258,10 +259,10 @@ type="password"
 placeholder="Wachtwoord"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-style={inputStyle}
+style={loginInput}
 />
 
-<button onClick={login} style={goldBtn}>
+<button onClick={login} style={goldBtnSmall}>
 Login
 </button>
 
@@ -302,7 +303,7 @@ return(
 <input placeholder="Event naam (titel)" value={name} onChange={(e)=>setName(e.target.value)} style={inputStyle}/>
 <input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={inputStyle}/>
 
-<button onClick={createEvent} style={goldBtn}>Maak event</button>
+<button onClick={createEvent} style={goldBtnSmall}>Maak event</button>
 
 </div>
 
@@ -411,6 +412,35 @@ return(
 
 )}
 
+
+{/* EDIT EVENT */}
+
+{editing && (
+
+<div style={{marginTop:40,...cardStyle}}>
+
+<h2>Event bewerken</h2>
+
+<input
+value={editing.name}
+onChange={(e)=>setEditing({...editing,name:e.target.value})}
+style={inputStyle}
+/>
+
+<input
+value={editing.slug}
+onChange={(e)=>setEditing({...editing,slug:e.target.value})}
+style={inputStyle}
+/>
+
+<button onClick={saveEvent} style={goldBtnSmall}>
+Opslaan
+</button>
+
+</div>
+
+)}
+
 </div>
 
 )
@@ -433,6 +463,14 @@ justifyContent:"center",
 alignItems:"center",
 flexDirection:"column",
 background:"#f5efe6"
+}
+
+const loginInput:React.CSSProperties={
+width:220,
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+marginBottom:10
 }
 
 const statsGrid:React.CSSProperties={
@@ -489,6 +527,14 @@ color:"#fff",
 border:"none",
 width:"100%",
 textAlign:"center"
+}
+
+const goldBtnSmall:React.CSSProperties={
+padding:"10px 16px",
+borderRadius:8,
+background:"#d4a24c",
+color:"#fff",
+border:"none"
 }
 
 const deleteBtn:React.CSSProperties={
