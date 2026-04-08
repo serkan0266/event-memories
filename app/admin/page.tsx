@@ -12,15 +12,20 @@ const [loggedIn,setLoggedIn]=useState(false)
 const [password,setPassword]=useState("")
 
 const [events,setEvents]=useState<any[]>([])
+const [uploads,setUploads]=useState<any[]>([])
+
+const [viewEvent,setViewEvent]=useState<string | null>(null)
+const [editing,setEditing]=useState<any>(null)
+
+const [name,setName]=useState("")
+const [slug,setSlug]=useState("")
+
 const [stats,setStats]=useState({
 events:0,
 photos:0,
 videos:0,
 storage:0
 })
-
-const [name,setName]=useState("")
-const [slug,setSlug]=useState("")
 
 useEffect(()=>{
 if(loggedIn){
@@ -50,7 +55,6 @@ const {data}=await supabase
 if(!data) return
 
 let list:any[]=[]
-
 let totalPhotos=0
 let totalVideos=0
 let totalStorage=0
@@ -80,7 +84,6 @@ totalStorage+=storage
 
 list.push({
 ...e,
-uploads:uploads?.length||0,
 photos,
 videos,
 storage
@@ -122,21 +125,63 @@ async function deleteEvent(id:string){
 
 if(!confirm("Event verwijderen?")) return
 
-await supabase.from("events").delete().eq("id",id)
+await supabase
+.from("events")
+.delete()
+.eq("id",id)
 
 loadEvents()
 
 }
 
 
-async function toggleEvent(id:string,current:string){
+async function toggleEvent(id:string,status:string){
 
-const newStatus=current==="open"?"closed":"open"
+const newStatus=status==="open"?"closed":"open"
 
 await supabase
 .from("events")
 .update({status:newStatus})
 .eq("id",id)
+
+loadEvents()
+
+}
+
+
+async function viewUploads(eventId:string){
+
+setViewEvent(eventId)
+
+const {data}=await supabase
+.from("uploads")
+.select("*")
+.eq("event_id",eventId)
+.order("created_at",{ascending:false})
+
+setUploads(data || [])
+
+}
+
+
+function editEvent(event:any){
+
+setEditing(event)
+
+}
+
+
+async function saveEvent(){
+
+await supabase
+.from("events")
+.update({
+name:editing.name,
+slug:editing.slug
+})
+.eq("id",editing.id)
+
+setEditing(null)
 
 loadEvents()
 
@@ -211,8 +256,6 @@ a.click()
 }
 
 
-/* LOGIN */
-
 if(!loggedIn){
 
 return(
@@ -233,23 +276,12 @@ type="password"
 placeholder="Wachtwoord"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-style={{
-padding:12,
-borderRadius:8,
-border:"1px solid #ccc",
-marginBottom:10
-}}
+style={{padding:12,borderRadius:8,border:"1px solid #ccc",marginBottom:10}}
 />
 
 <button
 onClick={login}
-style={{
-background:"#d4a24c",
-color:"#fff",
-border:"none",
-padding:"10px 20px",
-borderRadius:8
-}}
+style={{background:"#d4a24c",color:"#fff",border:"none",padding:"10px 20px",borderRadius:8}}
 >
 Login
 </button>
@@ -261,18 +293,11 @@ Login
 }
 
 
-/* ADMIN */
-
 return(
 
-<div style={{
-background:"#f5efe6",
-minHeight:"100vh",
-padding:40,
-fontFamily:"sans-serif"
-}}>
+<div style={{background:"#f5efe6",minHeight:"100vh",padding:40}}>
 
-<h1 style={{marginBottom:30}}>Memories Admin</h1>
+<h1>Memories Admin</h1>
 
 
 {/* DASHBOARD */}
@@ -284,66 +309,34 @@ gap:20,
 marginBottom:40
 }}>
 
-<div style={cardStyle}>
-<h3>Events</h3>
-<p style={statNumber}>{stats.events}</p>
-</div>
-
-<div style={cardStyle}>
-<h3>Foto's</h3>
-<p style={statNumber}>{stats.photos}</p>
-</div>
-
-<div style={cardStyle}>
-<h3>Video's</h3>
-<p style={statNumber}>{stats.videos}</p>
-</div>
-
-<div style={cardStyle}>
-<h3>Storage</h3>
-<p style={statNumber}>{stats.storage} MB</p>
-</div>
+<div style={card}><h3>Events</h3><b>{stats.events}</b></div>
+<div style={card}><h3>Foto's</h3><b>{stats.photos}</b></div>
+<div style={card}><h3>Video's</h3><b>{stats.videos}</b></div>
+<div style={card}><h3>Storage</h3><b>{stats.storage} MB</b></div>
 
 </div>
 
 
 {/* CREATE EVENT */}
 
-<div style={{
-...cardStyle,
-marginBottom:40
-}}>
+<div style={card}>
 
 <h3>Nieuw event maken</h3>
 
-<div style={{display:"flex",gap:10,marginTop:10,flexWrap:"wrap"}}>
+<div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
 
-<input
-placeholder="Event naam (titel)"
-value={name}
-onChange={(e)=>setName(e.target.value)}
-style={inputStyle}
-/>
+<input placeholder="Event naam (titel)" value={name} onChange={(e)=>setName(e.target.value)} style={input}/>
+<input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={input}/>
 
-<input
-placeholder="Slug"
-value={slug}
-onChange={(e)=>setSlug(e.target.value)}
-style={inputStyle}
-/>
-
-<button onClick={createEvent} style={goldButton}>
-Maak event
-</button>
+<button onClick={createEvent} style={gold}>Maak event</button>
 
 </div>
 
 </div>
 
 
-{/* EVENTS */}
+<h2 style={{marginTop:40}}>Events</h2>
 
-<h2 style={{marginBottom:20}}>Events</h2>
 
 <div style={{
 display:"grid",
@@ -357,53 +350,75 @@ const url=`https://memories.showverhuur.nl/event/${e.slug}`
 
 return(
 
-<div key={e.id} style={cardStyle}>
+<div key={e.id} style={card}>
 
 <h3>{e.name}</h3>
 
-<p style={{opacity:.6}}>/event/{e.slug}</p>
+<p>/event/{e.slug}</p>
 
-<p>Status: <b style={{color:e.status==="open"?"green":"red"}}>{e.status}</b></p>
+<p>Status: <b>{e.status}</b></p>
 
 <p>📸 {e.photos} foto's</p>
 <p>🎥 {e.videos} video's</p>
 <p>💾 Storage: {e.storage} MB</p>
 
-<div style={{margin:"10px 0"}}>
 <QRCode value={url} size={120}/>
-</div>
 
 <input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
 
-<a href={url} target="_blank" style={buttonStyle}>
-Open Event
-</a>
+<a href={url} target="_blank" style={btn}>Open Event</a>
 
-<button style={buttonStyle}>
-Uploads bekijken
-</button>
+<button onClick={()=>viewUploads(e.id)} style={btn}>Uploads bekijken</button>
 
-<a href={`/api/zip?event=${e.id}`} style={goldButton}>
-Download ZIP
-</a>
+<a href={`/api/zip?event=${e.id}`} style={gold}>Download ZIP</a>
 
-<button onClick={downloadQR} style={buttonStyle}>
-Download QR
-</button>
+<button onClick={downloadQR} style={btn}>Download QR</button>
 
-<button
-onClick={()=>toggleEvent(e.id,e.status)}
-style={buttonStyle}
->
+<button onClick={()=>editEvent(e)} style={btn}>Bewerken</button>
+
+<button onClick={()=>toggleEvent(e.id,e.status)} style={btn}>
 {e.status==="open"?"Event sluiten":"Event openen"}
 </button>
 
-<button
-onClick={()=>deleteEvent(e.id)}
-style={deleteButton}
->
-Verwijderen
-</button>
+<button onClick={()=>deleteEvent(e.id)} style={del}>Verwijderen</button>
+
+</div>
+
+)
+
+})}
+
+</div>
+
+
+{/* UPLOADS */}
+
+{viewEvent && (
+
+<div style={{marginTop:50}}>
+
+<h2>Uploads</h2>
+
+<div style={{
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,200px)",
+gap:20
+}}>
+
+{uploads.map((u)=>{
+
+return(
+
+<div key={u.id} style={card}>
+
+{u.type==="image" && (
+<img src={u.file_url} style={{width:"100%",borderRadius:6}}/>
+)}
+
+<p><b>{u.name}</b></p>
+<p style={{fontSize:12}}>{u.message}</p>
+
+<a href={u.file_url} target="_blank">Download</a>
 
 </div>
 
@@ -415,6 +430,28 @@ Verwijderen
 
 </div>
 
+)}
+
+
+{/* EDIT EVENT */}
+
+{editing && (
+
+<div style={{marginTop:40,...card}}>
+
+<h2>Event bewerken</h2>
+
+<input value={editing.name} onChange={(e)=>setEditing({...editing,name:e.target.value})} style={input}/>
+<input value={editing.slug} onChange={(e)=>setEditing({...editing,slug:e.target.value})} style={input}/>
+
+<button onClick={saveEvent} style={gold}>Opslaan</button>
+
+</div>
+
+)}
+
+</div>
+
 )
 
 }
@@ -422,52 +459,12 @@ Verwijderen
 
 /* STYLES */
 
-const cardStyle={
-background:"#fff",
-padding:20,
-borderRadius:14,
-boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
-}
+const card={background:"#fff",padding:20,borderRadius:12,boxShadow:"0 3px 10px rgba(0,0,0,0.05)"}
 
-const statNumber={
-fontSize:28,
-fontWeight:"bold"
-}
+const input={padding:10,borderRadius:8,border:"1px solid #ccc"}
 
-const inputStyle={
-padding:10,
-borderRadius:8,
-border:"1px solid #ccc"
-}
+const btn={display:"block",marginTop:10,padding:"10px",borderRadius:8,border:"1px solid #ddd",background:"#fff"}
 
-const buttonStyle={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-border:"1px solid #ddd",
-background:"#fff",
-cursor:"pointer"
-}
+const gold={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"#d4a24c",color:"#fff",border:"none"}
 
-const goldButton={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-background:"#d4a24c",
-color:"#fff",
-border:"none",
-cursor:"pointer"
-}
-
-const deleteButton={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-background:"red",
-color:"#fff",
-border:"none",
-cursor:"pointer"
-}
+const del={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"red",color:"#fff",border:"none"}
