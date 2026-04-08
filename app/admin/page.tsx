@@ -69,10 +69,14 @@ const {data:uploads}=await supabase
 
 let photos=0
 let videos=0
+let guests=new Set()
 
 uploads?.forEach((u:any)=>{
+
 if(u.type==="image") photos++
 if(u.type==="video") videos++
+if(u.name) guests.add(u.name)
+
 })
 
 const storage=(uploads?.length||0)*5
@@ -85,6 +89,7 @@ list.push({
 ...e,
 photos,
 videos,
+guests:guests.size,
 storage
 })
 
@@ -284,10 +289,10 @@ return(
 
 <div style={statsGrid}>
 
-<div style={cardStyle}><h3>Events</h3><b>{stats.events}</b></div>
-<div style={cardStyle}><h3>Foto's</h3><b>{stats.photos}</b></div>
-<div style={cardStyle}><h3>Video's</h3><b>{stats.videos}</b></div>
-<div style={cardStyle}><h3>Storage</h3><b>{stats.storage} MB</b></div>
+<div style={statCard}><h3>Events</h3><b>{stats.events}</b></div>
+<div style={statCard}><h3>Foto's</h3><b>{stats.photos}</b></div>
+<div style={statCard}><h3>Video's</h3><b>{stats.videos}</b></div>
+<div style={statCard}><h3>Storage</h3><b>{stats.storage} MB</b></div>
 
 </div>
 
@@ -323,7 +328,25 @@ return(
 
 <div key={e.id} style={cardStyle}>
 
+<div style={{
+display:"flex",
+justifyContent:"space-between",
+alignItems:"center"
+}}>
+
 <h3>{e.name}</h3>
+
+<span style={{
+padding:"4px 10px",
+borderRadius:20,
+fontSize:12,
+background:e.status==="open"?"#e6f7ea":"#fdecea",
+color:e.status==="open"?"green":"red"
+}}>
+{e.status==="open"?"OPEN":"GESLOTEN"}
+</span>
+
+</div>
 
 <p>/event/{e.slug}</p>
 
@@ -336,9 +359,15 @@ style={btnStyle}
 <option value="closed">❌ Event gesloten</option>
 </select>
 
+
+<div style={{marginTop:10,fontSize:14}}>
+
+<p>👥 {e.guests} gasten hebben geupload</p>
 <p>📸 {e.photos} foto's</p>
 <p>🎥 {e.videos} video's</p>
-<p>💾 Storage: {e.storage} MB</p>
+<p>💾 {e.storage} MB</p>
+
+</div>
 
 <QRCode value={url} size={120}/>
 
@@ -412,35 +441,6 @@ return(
 
 )}
 
-
-{/* EDIT EVENT */}
-
-{editing && (
-
-<div style={{marginTop:40,...cardStyle}}>
-
-<h2>Event bewerken</h2>
-
-<input
-value={editing.name}
-onChange={(e)=>setEditing({...editing,name:e.target.value})}
-style={inputStyle}
-/>
-
-<input
-value={editing.slug}
-onChange={(e)=>setEditing({...editing,slug:e.target.value})}
-style={inputStyle}
-/>
-
-<button onClick={saveEvent} style={goldBtnSmall}>
-Opslaan
-</button>
-
-</div>
-
-)}
-
 </div>
 
 )
@@ -450,100 +450,28 @@ Opslaan
 
 /* STYLES */
 
-const containerStyle:React.CSSProperties={
-background:"#f5efe6",
-minHeight:"100vh",
-padding:40
-}
+const containerStyle={background:"#f5efe6",minHeight:"100vh",padding:40}
 
-const loginStyle:React.CSSProperties={
-height:"100vh",
-display:"flex",
-justifyContent:"center",
-alignItems:"center",
-flexDirection:"column",
-background:"#f5efe6"
-}
+const loginStyle={height:"100vh",display:"flex",justifyContent:"center",alignItems:"center",flexDirection:"column",background:"#f5efe6"}
 
-const loginInput:React.CSSProperties={
-width:220,
-padding:10,
-borderRadius:8,
-border:"1px solid #ccc",
-marginBottom:10
-}
+const loginInput={width:220,padding:10,borderRadius:8,border:"1px solid #ccc",marginBottom:10}
 
-const statsGrid:React.CSSProperties={
-display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
-gap:20,
-marginBottom:40
-}
+const statsGrid={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:20,marginBottom:40}
 
-const eventGrid:React.CSSProperties={
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,320px)",
-gap:25
-}
+const eventGrid={display:"grid",gridTemplateColumns:"repeat(auto-fill,320px)",gap:25}
 
-const uploadGrid:React.CSSProperties={
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,200px)",
-gap:20
-}
+const uploadGrid={display:"grid",gridTemplateColumns:"repeat(auto-fill,200px)",gap:20}
 
-const cardStyle:React.CSSProperties={
-background:"#fff",
-padding:20,
-borderRadius:12,
-boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
-}
+const statCard={background:"#fff",padding:20,borderRadius:12,boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}
 
-const inputStyle:React.CSSProperties={
-padding:10,
-borderRadius:8,
-border:"1px solid #ccc"
-}
+const cardStyle={background:"#fff",padding:20,borderRadius:12,boxShadow:"0 3px 10px rgba(0,0,0,0.05)"}
 
-const btnStyle:React.CSSProperties={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-border:"1px solid #ddd",
-background:"#fff",
-width:"100%",
-textAlign:"center",
-cursor:"pointer"
-}
+const inputStyle={padding:10,borderRadius:8,border:"1px solid #ccc"}
 
-const goldBtn:React.CSSProperties={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-background:"#d4a24c",
-color:"#fff",
-border:"none",
-width:"100%",
-textAlign:"center"
-}
+const btnStyle={display:"block",marginTop:10,padding:"10px",borderRadius:8,border:"1px solid #ddd",background:"#fff",width:"100%",textAlign:"center"}
 
-const goldBtnSmall:React.CSSProperties={
-padding:"10px 16px",
-borderRadius:8,
-background:"#d4a24c",
-color:"#fff",
-border:"none"
-}
+const goldBtn={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"#d4a24c",color:"#fff",border:"none",width:"100%"}
 
-const deleteBtn:React.CSSProperties={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-background:"red",
-color:"#fff",
-border:"none",
-width:"100%"
-}
+const goldBtnSmall={padding:"10px 16px",borderRadius:8,background:"#d4a24c",color:"#fff",border:"none"}
+
+const deleteBtn={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"red",color:"#fff",border:"none",width:"100%"}
