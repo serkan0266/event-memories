@@ -1,13 +1,23 @@
-import Link from "next/link";
+"use client"
+
+import Link from "next/link"
+import { motion } from "framer-motion"
 
 export default function Home() {
 
 const gold = "#C9A46C"
 const beige = "#F7F3EE"
-const dark = "#111827"
+const dark = "#0f172a"
 
 const whatsapp =
 "https://wa.me/31612394000?text=Wij%20willen%20graag%20een%20Memories%20pagina%20voor%20datum..."
+
+const photos = [
+"https://images.unsplash.com/photo-1529636798458-92182e662485",
+"https://images.unsplash.com/photo-1521334884684-d80222895322",
+"https://images.unsplash.com/photo-1519741497674-611481863552",
+"https://images.unsplash.com/photo-1504198453319-5ce911bafcde",
+]
 
 return (
 
@@ -20,65 +30,62 @@ color:"#1f2937"
 {/* HERO */}
 
 <section style={{
+padding:"140px 20px",
 maxWidth:1200,
 margin:"0 auto",
-padding:"120px 20px",
 display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",
-alignItems:"center",
-gap:70
+gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",
+gap:80,
+alignItems:"center"
 }}>
 
 <div>
 
-<p style={{
-color:gold,
-fontWeight:600,
-letterSpacing:1
-}}>
-SHOWVERHUUR MEMORIES
-</p>
-
-<h1 style={{
-fontSize:"clamp(44px,6vw,70px)",
-lineHeight:1.05,
-margin:"20px 0"
-}}>
+<motion.h1
+initial={{opacity:0,y:40}}
+animate={{opacity:1,y:0}}
+transition={{duration:.8}}
+style={{
+fontSize:"clamp(48px,6vw,80px)",
+lineHeight:1.05
+}}
+>
 Alle herinneringen
 van jullie event
 op één plek
-</h1>
+</motion.h1>
 
 <p style={{
 fontSize:20,
-opacity:.75,
-marginBottom:40,
-maxWidth:500
+marginTop:20,
+opacity:.8
 }}>
-Laat gasten foto's en video's uploaden via een QR code.
-Alle momenten automatisch verzameld op één pagina.
+Gasten scannen een QR code en uploaden foto's.
+Alles komt automatisch op jullie eventpagina.
 </p>
 
-<div style={{display:"flex",gap:15,flexWrap:"wrap"}}>
+<div style={{marginTop:40,display:"flex",gap:15}}>
 
-<a href={whatsapp} style={{
+<a href={whatsapp}
+style={{
 background:gold,
-padding:"16px 32px",
-borderRadius:12,
+padding:"16px 34px",
+borderRadius:14,
 color:"white",
 textDecoration:"none",
 fontWeight:600
-}}>
+}}
+>
 Start Memories
 </a>
 
-<Link href="/demo" style={{
+<Link href="/demo"
+style={{
 border:`2px solid ${gold}`,
-padding:"16px 32px",
-borderRadius:12,
-textDecoration:"none",
-color:"#333"
-}}>
+padding:"16px 34px",
+borderRadius:14
+}}
+>
 Bekijk demo
 </Link>
 
@@ -87,73 +94,26 @@ Bekijk demo
 </div>
 
 
-{/* FLOATING GALLERY */}
+{/* FLOATING PHOTO WALL */}
 
 <div style={{
 display:"grid",
 gridTemplateColumns:"1fr 1fr",
-gap:15
+gap:20
 }}>
 
-<img src="https://images.unsplash.com/photo-1529636798458-92182e662485"
-style={{width:"100%",borderRadius:16}}/>
+{photos.map((img,i)=>(
 
-<img src="https://images.unsplash.com/photo-1521334884684-d80222895322"
-style={{width:"100%",borderRadius:16}}/>
-
-<img src="https://images.unsplash.com/photo-1519741497674-611481863552"
-style={{width:"100%",borderRadius:16}}/>
-
-<img src="https://images.unsplash.com/photo-1504198453319-5ce911bafcde"
-style={{width:"100%",borderRadius:16}}/>
-
-</div>
-
-</section>
-
-
-
-{/* LIVE GALLERY */}
-
-<section style={{
-padding:"90px 20px"
-}}>
-
-<div style={{
-maxWidth:1200,
-margin:"0 auto"
-}}>
-
-<h2 style={{
-fontSize:"clamp(30px,4vw,42px)",
-textAlign:"center",
-marginBottom:50
-}}>
-Alle foto's van jullie gasten
-automatisch verzameld
-</h2>
-
-<div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
-gap:15
-}}>
-
-{[
-"https://images.unsplash.com/photo-1519741497674-611481863552",
-"https://images.unsplash.com/photo-1529636798458-92182e662485",
-"https://images.unsplash.com/photo-1504198453319-5ce911bafcde",
-"https://images.unsplash.com/photo-1521334884684-d80222895322",
-"https://images.unsplash.com/photo-1492684223066-81342ee5ff30",
-"https://images.unsplash.com/photo-1520857014576-2c4f4c972b57"
-].map((img,i)=>(
-
-<img key={i}
+<motion.img
+key={i}
 src={img}
+initial={{opacity:0,y:40}}
+animate={{opacity:1,y:0}}
+transition={{delay:i*0.2}}
 style={{
 width:"100%",
-borderRadius:16,
-objectFit:"cover"
+borderRadius:20,
+boxShadow:"0 20px 60px rgba(0,0,0,0.2)"
 }}
 />
 
@@ -161,86 +121,112 @@ objectFit:"cover"
 
 </div>
 
+</section>
+
+
+
+{/* QR SCAN ANIMATION */}
+
+<section style={{
+background:"white",
+padding:"120px 20px"
+}}>
+
+<div style={{
+maxWidth:900,
+margin:"0 auto",
+textAlign:"center"
+}}>
+
+<h2 style={{
+fontSize:42,
+marginBottom:50
+}}>
+Hoe het werkt
+</h2>
+
+
+{/* QR VISUAL */}
+
+<div style={{
+position:"relative",
+width:260,
+height:260,
+margin:"0 auto",
+borderRadius:20,
+background:"#eee",
+display:"flex",
+alignItems:"center",
+justifyContent:"center"
+}}>
+
+<img
+src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=memories"
+style={{width:200}}
+/>
+
+{/* scanning line */}
+
+<motion.div
+animate={{y:[-100,100,-100]}}
+transition={{duration:3,repeat:Infinity}}
+style={{
+position:"absolute",
+width:"100%",
+height:4,
+background:gold,
+boxShadow:`0 0 20px ${gold}`
+}}
+/>
+
+</div>
+
+<p style={{marginTop:30,opacity:.7}}>
+Gasten scannen de QR code en uploaden direct foto's.
+</p>
+
 </div>
 
 </section>
 
 
 
-{/* HOW IT WORKS */}
+{/* AUTO PHOTO WALL */}
 
 <section style={{
-background:"white",
-padding:"100px 20px"
+padding:"120px 20px",
+overflow:"hidden"
 }}>
 
-<div style={{maxWidth:1100,margin:"0 auto"}}>
+<motion.div
+animate={{x:["0%","-50%"]}}
+transition={{
+repeat:Infinity,
+duration:20,
+ease:"linear"
+}}
+style={{
+display:"flex",
+gap:20
+}}
+>
 
-<h2 style={{
-textAlign:"center",
-fontSize:"clamp(30px,4vw,42px)",
-marginBottom:70
-}}>
-Hoe werkt het?
-</h2>
+{[...photos,...photos,...photos].map((img,i)=>(
 
-<div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",
-gap:40
-}}>
-
-{[
-{
-title:"Wij maken jullie pagina",
-text:"Elke klant krijgt een unieke event pagina."
-},
-{
-title:"QR code voor gasten",
-text:"Plaats de QR code op tafels of bij de ingang."
-},
-{
-title:"Gasten uploaden foto's",
-text:"Foto's en video's worden direct opgeslagen."
-},
-{
-title:"Download alles",
-text:"Na afloop download je alle herinneringen."
-}
-].map((step,i)=>(
-
-<div key={i} style={{
-background:"rgba(255,255,255,0.6)",
-backdropFilter:"blur(10px)",
-padding:30,
-borderRadius:20,
-boxShadow:"0 10px 40px rgba(0,0,0,0.05)"
-}}>
-
-<div style={{
-fontSize:36,
-color:gold,
-fontWeight:700,
-marginBottom:10
-}}>
-{i+1}
-</div>
-
-<h3 style={{marginBottom:10}}>
-{step.title}
-</h3>
-
-<p style={{opacity:.7}}>
-{step.text}
-</p>
-
-</div>
+<img
+key={i}
+src={img}
+style={{
+width:260,
+height:180,
+objectFit:"cover",
+borderRadius:16
+}}
+/>
 
 ))}
 
-</div>
-
-</div>
+</motion.div>
 
 </section>
 
@@ -249,14 +235,14 @@ marginBottom:10
 {/* EVENTS */}
 
 <section style={{
-padding:"100px 20px",
+padding:"120px 20px",
 maxWidth:1200,
 margin:"0 auto"
 }}>
 
 <h2 style={{
 textAlign:"center",
-fontSize:"clamp(30px,4vw,42px)",
+fontSize:46,
 marginBottom:60
 }}>
 Perfect voor elk event
@@ -277,23 +263,24 @@ gap:25
 "Feesten"
 ].map((item,i)=>(
 
-<div key={i} style={{
+<motion.div
+key={i}
+whileHover={{y:-8}}
+style={{
 background:"white",
-padding:35,
-borderRadius:20,
-boxShadow:"0 10px 40px rgba(0,0,0,0.05)"
-}}>
+padding:40,
+borderRadius:24,
+boxShadow:"0 20px 60px rgba(0,0,0,0.06)"
+}}
+>
 
-<h3 style={{marginBottom:10}}>
-{item}
-</h3>
+<h3>{item}</h3>
 
 <p style={{opacity:.7}}>
-Alle foto's en video's van gasten
-automatisch verzameld.
+Alle foto's van gasten automatisch verzameld.
 </p>
 
-</div>
+</motion.div>
 
 ))}
 
@@ -308,7 +295,7 @@ automatisch verzameld.
 <section style={{
 background:dark,
 color:"white",
-padding:"100px 20px"
+padding:"140px 20px"
 }}>
 
 <div style={{
@@ -317,23 +304,18 @@ margin:"0 auto",
 textAlign:"center"
 }}>
 
-<h2 style={{
-fontSize:42,
-marginBottom:30
-}}>
+<h2 style={{fontSize:48}}>
 Memories pakket
 </h2>
 
 <div style={{
-background:"#1F2937",
-padding:50,
-borderRadius:24
+marginTop:40,
+padding:60,
+borderRadius:30,
+background:"#1e293b"
 }}>
 
-<h3 style={{
-fontSize:56,
-marginBottom:10
-}}>
+<h3 style={{fontSize:70}}>
 €49
 </h3>
 
@@ -341,69 +323,24 @@ marginBottom:10
 eenmalig per event
 </p>
 
-<ul style={{
-lineHeight:2,
-marginTop:25
-}}>
-<li>Event pagina</li>
-<li>QR code</li>
-<li>Foto uploads</li>
-<li>Video uploads</li>
-<li>Download alles</li>
-</ul>
-
-<a href={whatsapp} style={{
+<a href={whatsapp}
+style={{
 display:"inline-block",
 marginTop:30,
 background:gold,
-padding:"16px 34px",
-borderRadius:12,
+padding:"18px 40px",
+borderRadius:14,
 color:"white",
 textDecoration:"none",
 fontWeight:600
-}}>
+}}
+>
 Start via WhatsApp
 </a>
 
 </div>
 
 </div>
-
-</section>
-
-
-
-{/* CTA */}
-
-<section style={{
-padding:"100px 20px",
-textAlign:"center"
-}}>
-
-<h2 style={{
-fontSize:"clamp(34px,4vw,46px)",
-marginBottom:20
-}}>
-Maak jullie herinneringen compleet
-</h2>
-
-<p style={{
-opacity:.7,
-marginBottom:30
-}}>
-Start een Memories pagina voor jullie event.
-</p>
-
-<a href={whatsapp} style={{
-background:gold,
-padding:"16px 36px",
-borderRadius:12,
-color:"white",
-textDecoration:"none",
-fontWeight:600
-}}>
-Start via WhatsApp
-</a>
 
 </section>
 
