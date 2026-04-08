@@ -1,26 +1,26 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import QRCode from "react-qr-code"
 
-export default function AdminPage(){
+export default function AdminPage() {
 
-const ADMIN_PASSWORD="66"
+const ADMIN_PASSWORD = "66"
 
-const [loggedIn,setLoggedIn]=useState(false)
-const [password,setPassword]=useState("")
+const [loggedIn,setLoggedIn] = useState(false)
+const [password,setPassword] = useState("")
 
-const [events,setEvents]=useState<any[]>([])
-const [uploads,setUploads]=useState<any[]>([])
+const [events,setEvents] = useState<any[]>([])
+const [uploads,setUploads] = useState<any[]>([])
 
-const [viewEvent,setViewEvent]=useState<string | null>(null)
-const [editing,setEditing]=useState<any>(null)
+const [viewEvent,setViewEvent] = useState<string | null>(null)
+const [editing,setEditing] = useState<any>(null)
 
-const [name,setName]=useState("")
-const [slug,setSlug]=useState("")
+const [name,setName] = useState("")
+const [slug,setSlug] = useState("")
 
-const [stats,setStats]=useState({
+const [stats,setStats] = useState({
 events:0,
 photos:0,
 videos:0,
@@ -35,31 +35,33 @@ loadEvents()
 
 
 function login(){
-if(password===ADMIN_PASSWORD){
+
+if(password === ADMIN_PASSWORD){
 setLoggedIn(true)
 }else{
 alert("Verkeerd wachtwoord")
 }
+
 }
 
 
 async function loadEvents(){
 
-const {data}=await supabase
+const {data} = await supabase
 .from("events")
 .select("*")
 .order("created_at",{ascending:false})
 
 if(!data) return
 
-let list:any[]=[]
+let list:any[] = []
 let totalPhotos=0
 let totalVideos=0
 let totalStorage=0
 
 for(const e of data){
 
-const {data:uploads}=await supabase
+const {data:uploads} = await supabase
 .from("uploads")
 .select("*")
 .eq("event_id",e.id)
@@ -121,10 +123,7 @@ async function deleteEvent(id:string){
 
 if(!confirm("Event verwijderen?")) return
 
-await supabase
-.from("events")
-.delete()
-.eq("id",id)
+await supabase.from("events").delete().eq("id",id)
 
 loadEvents()
 
@@ -153,7 +152,7 @@ const {data}=await supabase
 .eq("event_id",eventId)
 .order("created_at",{ascending:false})
 
-setUploads(data || [])
+setUploads(data||[])
 
 }
 
@@ -183,6 +182,7 @@ loadEvents()
 async function uploadHeader(e:any,eventId:string){
 
 const file=e.target.files[0]
+
 if(!file) return
 
 const path=`headers/${Date.now()}-${file.name}`
@@ -218,6 +218,7 @@ const svg=document.querySelector("svg")
 if(!svg) return
 
 const data=new XMLSerializer().serializeToString(svg)
+
 const canvas=document.createElement("canvas")
 const img=new Image()
 
@@ -245,7 +246,14 @@ if(!loggedIn){
 
 return(
 
-<div style={loginStyle}>
+<div style={{
+height:"100vh",
+display:"flex",
+justifyContent:"center",
+alignItems:"center",
+flexDirection:"column",
+background:"#f5efe6"
+}}>
 
 <h2>Memories Admin</h2>
 
@@ -254,10 +262,21 @@ type="password"
 placeholder="Wachtwoord"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-style={input}
+style={{padding:10,borderRadius:8,border:"1px solid #ccc",marginBottom:10}}
 />
 
-<button onClick={login} style={gold}>Login</button>
+<button
+onClick={login}
+style={{
+padding:"10px 20px",
+borderRadius:8,
+border:"none",
+background:"#d4a24c",
+color:"#fff"
+}}
+>
+Login
+</button>
 
 </div>
 
@@ -268,14 +287,19 @@ style={input}
 
 return(
 
-<div style={container}>
+<div style={{background:"#f5efe6",minHeight:"100vh",padding:40}}>
 
 <h1>Memories Admin</h1>
 
 
 {/* DASHBOARD */}
 
-<div style={statsGrid}>
+<div style={{
+display:"grid",
+gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
+gap:20,
+marginBottom:40
+}}>
 
 <div style={card}><h3>Events</h3><b>{stats.events}</b></div>
 <div style={card}><h3>Foto's</h3><b>{stats.photos}</b></div>
@@ -291,7 +315,7 @@ return(
 
 <h3>Nieuw event maken</h3>
 
-<div style={createRow}>
+<div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
 
 <input placeholder="Event naam (titel)" value={name} onChange={(e)=>setName(e.target.value)} style={input}/>
 <input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={input}/>
@@ -306,7 +330,11 @@ return(
 <h2 style={{marginTop:40}}>Events</h2>
 
 
-<div style={eventGrid}>
+<div style={{
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,320px)",
+gap:25
+}}>
 
 {events.map((e)=>{
 
@@ -379,7 +407,11 @@ Uploads bekijken
 
 <h2>Uploads</h2>
 
-<div style={uploadGrid}>
+<div style={{
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,200px)",
+gap:20
+}}>
 
 {uploads.map((u)=>{
 
@@ -433,26 +465,8 @@ return(
 }
 
 
-/* STYLES */
-
-const container={background:"#f5efe6",minHeight:"100vh",padding:40}
-
-const loginStyle={height:"100vh",display:"flex",justifyContent:"center",alignItems:"center",flexDirection:"column",background:"#f5efe6"}
-
-const statsGrid={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:20,marginBottom:40}
-
-const eventGrid={display:"grid",gridTemplateColumns:"repeat(auto-fill,320px)",gap:25}
-
-const uploadGrid={display:"grid",gridTemplateColumns:"repeat(auto-fill,200px)",gap:20}
-
-const createRow={display:"flex",gap:10,flexWrap:"wrap"}
-
 const card={background:"#fff",padding:20,borderRadius:12,boxShadow:"0 3px 10px rgba(0,0,0,0.05)"}
-
 const input={padding:10,borderRadius:8,border:"1px solid #ccc"}
-
 const btn={display:"block",marginTop:10,padding:"10px",borderRadius:8,border:"1px solid #ddd",background:"#fff",width:"100%",textAlign:"center"}
-
 const gold={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"#d4a24c",color:"#fff",border:"none",width:"100%"}
-
 const del={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"red",color:"#fff",border:"none",width:"100%"}
