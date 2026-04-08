@@ -16,6 +16,7 @@ const [events,setEvents]=useState<any[]>([])
 const [uploads,setUploads]=useState<any[]>([])
 
 const [viewEvent,setViewEvent]=useState<string | null>(null)
+const [editing,setEditing]=useState<any>(null)
 
 const [name,setName]=useState("")
 const [slug,setSlug]=useState("")
@@ -153,6 +154,28 @@ setUploads(data||[])
 }
 
 
+function editEvent(event:any){
+setEditing({...event})
+}
+
+
+async function saveEvent(){
+
+await supabase
+.from("events")
+.update({
+name:editing.name,
+slug:editing.slug
+})
+.eq("id",editing.id)
+
+setEditing(null)
+
+loadEvents()
+
+}
+
+
 async function deleteEvent(id:string){
 
 if(!confirm("Event verwijderen?")) return
@@ -163,6 +186,68 @@ await supabase
 .eq("id",id)
 
 loadEvents()
+
+}
+
+
+async function uploadHeader(e:any,eventId:string){
+
+const file=e.target.files[0]
+if(!file) return
+
+const path=`headers/${Date.now()}-${file.name}`
+
+const {error}=await supabase.storage
+.from("uploads")
+.upload(path,file)
+
+if(error){
+alert("Upload fout")
+return
+}
+
+const {data:url}=supabase.storage
+.from("uploads")
+.getPublicUrl(path)
+
+await supabase
+.from("events")
+.update({header_image:url.publicUrl})
+.eq("id",eventId)
+
+alert("Header geupload")
+
+loadEvents()
+
+}
+
+
+function downloadQR(){
+
+const svg=document.querySelector("svg")
+if(!svg) return
+
+const data=new XMLSerializer().serializeToString(svg)
+
+const canvas=document.createElement("canvas")
+const img=new Image()
+
+img.src="data:image/svg+xml;base64,"+btoa(data)
+
+img.onload=()=>{
+
+canvas.width=img.width
+canvas.height=img.height
+
+const ctx=canvas.getContext("2d")
+ctx?.drawImage(img,0,0)
+
+const a=document.createElement("a")
+a.download="qr-code.png"
+a.href=canvas.toDataURL()
+a.click()
+
+}
 
 }
 
@@ -200,6 +285,9 @@ return(
 
 <h1>Memories Admin</h1>
 
+
+{/* DASHBOARD */}
+
 <div style={statsGrid}>
 
 <div style={statCard}><h3>Events</h3><b>{stats.events}</b></div>
@@ -209,6 +297,8 @@ return(
 
 </div>
 
+
+{/* CREATE EVENT */}
 
 <div style={cardStyle}>
 
@@ -285,12 +375,22 @@ style={btnStyle}
 
 <QRCode value={url} size={120}/>
 
+<input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
+
 <a href={url} target="_blank" style={btnStyle}>
 Open Event
 </a>
 
 <button onClick={()=>viewUploads(e.id)} style={btnStyle}>
 Uploads bekijken
+</button>
+
+<button onClick={downloadQR} style={btnStyle}>
+Download QR
+</button>
+
+<button onClick={()=>editEvent(e)} style={btnStyle}>
+Bewerken
 </button>
 
 <a href={`/api/zip?event=${e.id}`} style={goldBtn}>
@@ -308,6 +408,69 @@ Verwijderen
 })}
 
 </div>
+
+
+{/* EDIT EVENT */}
+
+{editing && (
+
+<div style={{marginTop:40,...cardStyle}}>
+
+<h2>Event bewerken</h2>
+
+<input
+value={editing.name}
+onChange={(e)=>setEditing({...editing,name:e.target.value})}
+style={inputStyle}
+/>
+
+<input
+value={editing.slug}
+onChange={(e)=>setEditing({...editing,slug:e.target.value})}
+style={inputStyle}
+/>
+
+<button onClick={saveEvent} style={goldBtnSmall}>
+Opslaan
+</button>
+
+</div>
+
+)}
+
+
+{/* UPLOADS */}
+
+{viewEvent && (
+
+<div style={{marginTop:50}}>
+
+<h2>Uploads</h2>
+
+<div style={uploadGrid}>
+
+{uploads.map((u)=>(
+
+<div key={u.id} style={cardStyle}>
+
+{u.type==="image" && (
+<img src={u.file_url} style={{width:"100%",borderRadius:6}}/>
+)}
+
+<p><b>{u.name}</b></p>
+<p>{u.message}</p>
+
+<a href={u.file_url} target="_blank">Download</a>
+
+</div>
+
+))}
+
+</div>
+
+</div>
+
+)}
 
 </div>
 
@@ -352,6 +515,12 @@ const eventGrid:CSSProperties={
 display:"grid",
 gridTemplateColumns:"repeat(auto-fill,320px)",
 gap:25
+}
+
+const uploadGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,200px)",
+gap:20
 }
 
 const statCard:CSSProperties={
