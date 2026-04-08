@@ -35,13 +35,11 @@ loadEvents()
 
 
 function login(){
-
 if(password===ADMIN_PASSWORD){
 setLoggedIn(true)
 }else{
 alert("Verkeerd wachtwoord")
 }
-
 }
 
 
@@ -70,10 +68,8 @@ let photos=0
 let videos=0
 
 uploads?.forEach((u:any)=>{
-
 if(u.type==="image") photos++
 if(u.type==="video") videos++
-
 })
 
 const storage=(uploads?.length||0)*5
@@ -137,11 +133,9 @@ loadEvents()
 
 async function toggleEvent(id:string,status:string){
 
-const newStatus=status==="open"?"closed":"open"
-
 await supabase
 .from("events")
-.update({status:newStatus})
+.update({status})
 .eq("id",id)
 
 loadEvents()
@@ -165,9 +159,7 @@ setUploads(data || [])
 
 
 function editEvent(event:any){
-
 setEditing(event)
-
 }
 
 
@@ -191,7 +183,6 @@ loadEvents()
 async function uploadHeader(e:any,eventId:string){
 
 const file=e.target.files[0]
-
 if(!file) return
 
 const path=`headers/${Date.now()}-${file.name}`
@@ -224,13 +215,10 @@ loadEvents()
 function downloadQR(){
 
 const svg=document.querySelector("svg")
-
 if(!svg) return
 
 const data=new XMLSerializer().serializeToString(svg)
-
 const canvas=document.createElement("canvas")
-
 const img=new Image()
 
 img.src="data:image/svg+xml;base64,"+btoa(data)
@@ -241,14 +229,11 @@ canvas.width=img.width
 canvas.height=img.height
 
 const ctx=canvas.getContext("2d")
-
 ctx?.drawImage(img,0,0)
 
 const a=document.createElement("a")
-
 a.download="qr-code.png"
 a.href=canvas.toDataURL()
-
 a.click()
 
 }
@@ -260,14 +245,7 @@ if(!loggedIn){
 
 return(
 
-<div style={{
-height:"100vh",
-display:"flex",
-justifyContent:"center",
-alignItems:"center",
-flexDirection:"column",
-background:"#f5efe6"
-}}>
+<div style={loginStyle}>
 
 <h2>Memories Admin</h2>
 
@@ -276,15 +254,10 @@ type="password"
 placeholder="Wachtwoord"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-style={{padding:12,borderRadius:8,border:"1px solid #ccc",marginBottom:10}}
+style={input}
 />
 
-<button
-onClick={login}
-style={{background:"#d4a24c",color:"#fff",border:"none",padding:"10px 20px",borderRadius:8}}
->
-Login
-</button>
+<button onClick={login} style={gold}>Login</button>
 
 </div>
 
@@ -295,19 +268,14 @@ Login
 
 return(
 
-<div style={{background:"#f5efe6",minHeight:"100vh",padding:40}}>
+<div style={container}>
 
 <h1>Memories Admin</h1>
 
 
 {/* DASHBOARD */}
 
-<div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
-gap:20,
-marginBottom:40
-}}>
+<div style={statsGrid}>
 
 <div style={card}><h3>Events</h3><b>{stats.events}</b></div>
 <div style={card}><h3>Foto's</h3><b>{stats.photos}</b></div>
@@ -323,7 +291,7 @@ marginBottom:40
 
 <h3>Nieuw event maken</h3>
 
-<div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+<div style={createRow}>
 
 <input placeholder="Event naam (titel)" value={name} onChange={(e)=>setName(e.target.value)} style={input}/>
 <input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={input}/>
@@ -338,11 +306,7 @@ marginBottom:40
 <h2 style={{marginTop:40}}>Events</h2>
 
 
-<div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,320px)",
-gap:25
-}}>
+<div style={eventGrid}>
 
 {events.map((e)=>{
 
@@ -356,7 +320,14 @@ return(
 
 <p>/event/{e.slug}</p>
 
-<p>Status: <b>{e.status}</b></p>
+<select
+value={e.status}
+onChange={(ev)=>toggleEvent(e.id,ev.target.value)}
+style={btn}
+>
+<option value="open">✅ Event open</option>
+<option value="closed">❌ Event gesloten</option>
+</select>
 
 <p>📸 {e.photos} foto's</p>
 <p>🎥 {e.videos} video's</p>
@@ -364,21 +335,30 @@ return(
 
 <QRCode value={url} size={120}/>
 
-<input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
+<input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} style={{marginTop:10}}/>
 
 <a href={url} target="_blank" style={btn}>Open Event</a>
 
-<button onClick={()=>viewUploads(e.id)} style={btn}>Uploads bekijken</button>
+<button
+style={btn}
+onClick={()=>{
 
-<a href={`/api/zip?event=${e.id}`} style={gold}>Download ZIP</a>
+if(viewEvent===e.id){
+setViewEvent(null)
+}else{
+viewUploads(e.id)
+}
+
+}}
+>
+Uploads bekijken
+</button>
 
 <button onClick={downloadQR} style={btn}>Download QR</button>
 
 <button onClick={()=>editEvent(e)} style={btn}>Bewerken</button>
 
-<button onClick={()=>toggleEvent(e.id,e.status)} style={btn}>
-{e.status==="open"?"Event sluiten":"Event openen"}
-</button>
+<a href={`/api/zip?event=${e.id}`} style={gold}>Download ZIP</a>
 
 <button onClick={()=>deleteEvent(e.id)} style={del}>Verwijderen</button>
 
@@ -399,11 +379,7 @@ return(
 
 <h2>Uploads</h2>
 
-<div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,200px)",
-gap:20
-}}>
+<div style={uploadGrid}>
 
 {uploads.map((u)=>{
 
@@ -459,12 +435,24 @@ return(
 
 /* STYLES */
 
+const container={background:"#f5efe6",minHeight:"100vh",padding:40}
+
+const loginStyle={height:"100vh",display:"flex",justifyContent:"center",alignItems:"center",flexDirection:"column",background:"#f5efe6"}
+
+const statsGrid={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:20,marginBottom:40}
+
+const eventGrid={display:"grid",gridTemplateColumns:"repeat(auto-fill,320px)",gap:25}
+
+const uploadGrid={display:"grid",gridTemplateColumns:"repeat(auto-fill,200px)",gap:20}
+
+const createRow={display:"flex",gap:10,flexWrap:"wrap"}
+
 const card={background:"#fff",padding:20,borderRadius:12,boxShadow:"0 3px 10px rgba(0,0,0,0.05)"}
 
 const input={padding:10,borderRadius:8,border:"1px solid #ccc"}
 
-const btn={display:"block",marginTop:10,padding:"10px",borderRadius:8,border:"1px solid #ddd",background:"#fff"}
+const btn={display:"block",marginTop:10,padding:"10px",borderRadius:8,border:"1px solid #ddd",background:"#fff",width:"100%",textAlign:"center"}
 
-const gold={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"#d4a24c",color:"#fff",border:"none"}
+const gold={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"#d4a24c",color:"#fff",border:"none",width:"100%"}
 
-const del={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"red",color:"#fff",border:"none"}
+const del={display:"block",marginTop:10,padding:"10px",borderRadius:8,background:"red",color:"#fff",border:"none",width:"100%"}
