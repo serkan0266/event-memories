@@ -172,7 +172,9 @@ background:"rgba(0,0,0,0.95)",
 display:"flex",
 flexDirection:"column",
 alignItems:"center",
-justifyContent:"center",
+justifyContent:"flex-start",
+paddingTop:80,
+overflowY:"auto",
 zIndex:1000
 }}
 >
@@ -229,7 +231,7 @@ cursor:"pointer"
 src={uploads[viewer].file_url}
 style={{
 maxWidth:"90%",
-maxHeight:"70vh",
+maxHeight:"60vh",
 borderRadius:10
 }}
 />
@@ -237,7 +239,9 @@ borderRadius:10
 <div style={{
 color:"#fff",
 marginTop:15,
-textAlign:"center"
+textAlign:"center",
+maxWidth:500,
+paddingBottom:40
 }}>
 
 <b>{uploads[viewer].name}</b>
