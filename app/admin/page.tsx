@@ -358,12 +358,14 @@ value={e.status}
 onChange={(ev)=>toggleEvent(e.id,ev.target.value)}
 style={btnStyle}
 >
-<option value="open">Event open</option>
-<option value="closed">Event gesloten</option>
+<option value="open">✅ Event open</option>
+<option value="closed">❌ Event gesloten</option>
 </select>
 
+<p>👥 {e.guests} gasten hebben geupload</p>
 <p>📸 {e.photos} foto's</p>
 <p>🎥 {e.videos} video's</p>
+<p>💾 {e.storage} MB</p>
 
 <QRCode value={url} size={120}/>
 
@@ -400,6 +402,33 @@ Verwijderen
 })}
 
 </div>
+
+
+{editing && (
+
+<div style={{marginTop:40,...cardStyle}}>
+
+<h2>Event bewerken</h2>
+
+<input
+value={editing.name}
+onChange={(e)=>setEditing({...editing,name:e.target.value})}
+style={inputStyle}
+/>
+
+<input
+value={editing.slug}
+onChange={(e)=>setEditing({...editing,slug:e.target.value})}
+style={inputStyle}
+/>
+
+<button onClick={saveEvent} style={goldBtnSmall}>
+Opslaan
+</button>
+
+</div>
+
+)}
 
 
 {viewEvent && (
@@ -516,7 +545,8 @@ boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
 const inputStyle:CSSProperties={
 padding:10,
 borderRadius:8,
-border:"1px solid #ccc"
+border:"1px solid #ccc",
+width:"100%"
 }
 
 const btnStyle:CSSProperties={
@@ -526,7 +556,8 @@ padding:"10px",
 borderRadius:8,
 border:"1px solid #ddd",
 background:"#fff",
-width:"100%"
+width:"100%",
+textAlign:"center"
 }
 
 const goldBtn:CSSProperties={
@@ -537,7 +568,8 @@ borderRadius:8,
 background:"#d4a24c",
 color:"#fff",
 border:"none",
-width:"100%"
+width:"100%",
+textAlign:"center"
 }
 
 const goldBtnSmall:CSSProperties={
