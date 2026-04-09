@@ -17,8 +17,18 @@ const [message,setMessage] = useState("")
 const [uploading,setUploading] = useState(false)
 const [progress,setProgress] = useState(0)
 const [count,setCount] = useState(0)
+const [uploaderId,setUploaderId] = useState("")
 
 useEffect(()=>{
+
+let id = localStorage.getItem("uploaderId")
+
+if(!id){
+id = crypto.randomUUID()
+localStorage.setItem("uploaderId",id)
+}
+
+setUploaderId(id)
 
 loadEvent()
 
@@ -75,7 +85,8 @@ event_id:event.id,
 file_url:url.publicUrl,
 type:"image",
 name:name,
-message:message
+message:message,
+uploader_id:uploaderId
 
 })
 
@@ -93,8 +104,45 @@ alert("Upload voltooid")
 }
 
 if(!event){
-
 return <div style={{padding:40}}>Loading...</div>
+}
+
+if(event.status==="closed"){
+
+return(
+
+<div style={{maxWidth:650,margin:"auto",padding:20,textAlign:"center"}}>
+
+{event.header_image && (
+<img src={event.header_image} style={{width:"100%",borderRadius:16,marginBottom:25}}/>
+)}
+
+<h1 style={{fontFamily:"cursive",fontSize:46}}>
+{event.name}
+</h1>
+
+<p style={{fontSize:18,marginTop:20}}>
+Inzendingen gesloten
+</p>
+
+<button
+onClick={()=>router.push(`/event/${slug}/gallery`)}
+style={{
+marginTop:40,
+background:"#d4a24c",
+color:"#fff",
+padding:"14px 30px",
+borderRadius:12,
+border:"none",
+fontSize:16
+}}
+>
+Galerij bekijken
+</button>
+
+</div>
+
+)
 
 }
 
@@ -106,8 +154,6 @@ margin:"auto",
 padding:20,
 textAlign:"center"
 }}>
-
-{/* HEADER */}
 
 {event.header_image && (
 
@@ -232,8 +278,6 @@ Video toevoegen
 </button>
 
 </div>
-
-{/* UPLOAD STATUS */}
 
 {uploading && (
 

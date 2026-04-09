@@ -154,6 +154,20 @@ setUploads(data||[])
 }
 
 
+async function deleteUpload(id:string){
+
+if(!confirm("Foto verwijderen?")) return
+
+await supabase
+.from("uploads")
+.delete()
+.eq("id",id)
+
+setUploads(uploads.filter(u=>u.id!==id))
+
+}
+
+
 function editEvent(event:any){
 setEditing({...event})
 }
@@ -285,20 +299,13 @@ return(
 
 <h1>Memories Admin</h1>
 
-
-{/* DASHBOARD */}
-
 <div style={statsGrid}>
-
 <div style={statCard}><h3>Events</h3><b>{stats.events}</b></div>
 <div style={statCard}><h3>Foto's</h3><b>{stats.photos}</b></div>
 <div style={statCard}><h3>Video's</h3><b>{stats.videos}</b></div>
 <div style={statCard}><h3>Storage</h3><b>{stats.storage} MB</b></div>
-
 </div>
 
-
-{/* CREATE EVENT */}
 
 <div style={cardStyle}>
 
@@ -341,64 +348,28 @@ return(
 
 <div key={e.id} style={cardStyle}>
 
-<div style={{display:"flex",justifyContent:"space-between"}}>
-
 <h3>{e.name}</h3>
-
-<span style={{
-background:e.status==="open"?"#e6f7ea":"#fdecea",
-color:e.status==="open"?"green":"red",
-padding:"4px 10px",
-borderRadius:20,
-fontSize:12
-}}>
-{e.status==="open"?"OPEN":"GESLOTEN"}
-</span>
-
-</div>
-
-<p>/event/{e.slug}</p>
 
 <select
 value={e.status}
 onChange={(ev)=>toggleEvent(e.id,ev.target.value)}
 style={btnStyle}
 >
-<option value="open">✅ Event open</option>
-<option value="closed">❌ Event gesloten</option>
+<option value="open">Event open</option>
+<option value="closed">Event gesloten</option>
 </select>
 
-<p>👥 {e.guests} gasten hebben geupload</p>
 <p>📸 {e.photos} foto's</p>
 <p>🎥 {e.videos} video's</p>
-<p>💾 {e.storage} MB</p>
 
 <QRCode value={url} size={120}/>
-
-<input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
-
-<a href={url} target="_blank" style={btnStyle}>
-Open Event
-</a>
 
 <button onClick={()=>viewUploads(e.id)} style={btnStyle}>
 Uploads bekijken
 </button>
 
-<button onClick={downloadQR} style={btnStyle}>
-Download QR
-</button>
-
-<button onClick={()=>editEvent(e)} style={btnStyle}>
-Bewerken
-</button>
-
-<a href={`/api/zip?event=${e.id}`} style={goldBtn}>
-Download ZIP
-</a>
-
 <button onClick={()=>deleteEvent(e.id)} style={deleteBtn}>
-Verwijderen
+Event verwijderen
 </button>
 
 </div>
@@ -409,37 +380,6 @@ Verwijderen
 
 </div>
 
-
-{/* EDIT EVENT */}
-
-{editing && (
-
-<div style={{marginTop:40,...cardStyle}}>
-
-<h2>Event bewerken</h2>
-
-<input
-value={editing.name}
-onChange={(e)=>setEditing({...editing,name:e.target.value})}
-style={inputStyle}
-/>
-
-<input
-value={editing.slug}
-onChange={(e)=>setEditing({...editing,slug:e.target.value})}
-style={inputStyle}
-/>
-
-<button onClick={saveEvent} style={goldBtnSmall}>
-Opslaan
-</button>
-
-</div>
-
-)}
-
-
-{/* UPLOADS */}
 
 {viewEvent && (
 
@@ -461,6 +401,21 @@ Opslaan
 <p>{u.message}</p>
 
 <a href={u.file_url} target="_blank">Download</a>
+
+<button
+onClick={()=>deleteUpload(u.id)}
+style={{
+marginTop:10,
+background:"red",
+color:"#fff",
+border:"none",
+padding:"8px",
+borderRadius:6,
+width:"100%"
+}}
+>
+Foto verwijderen
+</button>
 
 </div>
 
@@ -550,18 +505,6 @@ padding:"10px",
 borderRadius:8,
 border:"1px solid #ddd",
 background:"#fff",
-width:"100%",
-textAlign:"center"
-}
-
-const goldBtn:CSSProperties={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-background:"#d4a24c",
-color:"#fff",
-border:"none",
 width:"100%"
 }
 
