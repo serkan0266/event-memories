@@ -351,27 +351,19 @@ return(
 
 <div key={e.id} style={cardStyle}>
 
-<div style={{display:"flex",justifyContent:"space-between"}}>
-
 <h3>{e.name}</h3>
-
-</div>
-
-<p>/event/{e.slug}</p>
 
 <select
 value={e.status}
 onChange={(ev)=>toggleEvent(e.id,ev.target.value)}
 style={btnStyle}
 >
-<option value="open">✅ Event open</option>
-<option value="closed">❌ Event gesloten</option>
+<option value="open">Event open</option>
+<option value="closed">Event gesloten</option>
 </select>
 
-<p>👥 {e.guests} gasten hebben geupload</p>
 <p>📸 {e.photos} foto's</p>
 <p>🎥 {e.videos} video's</p>
-<p>💾 {e.storage} MB</p>
 
 <QRCode value={url} size={120}/>
 
@@ -460,4 +452,109 @@ Foto verwijderen
 
 )
 
+}
+
+
+/* STYLES */
+
+const containerStyle:CSSProperties={
+background:"#f5efe6",
+minHeight:"100vh",
+padding:40
+}
+
+const loginStyle:CSSProperties={
+height:"100vh",
+display:"flex",
+justifyContent:"center",
+alignItems:"center",
+flexDirection:"column",
+background:"#f5efe6"
+}
+
+const loginInput:CSSProperties={
+width:220,
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+marginBottom:10
+}
+
+const statsGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
+gap:20,
+marginBottom:40
+}
+
+const eventGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,320px)",
+gap:25
+}
+
+const uploadGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,200px)",
+gap:20
+}
+
+const statCard:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 2px 8px rgba(0,0,0,0.05)"
+}
+
+const cardStyle:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
+}
+
+const inputStyle:CSSProperties={
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc"
+}
+
+const btnStyle:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+border:"1px solid #ddd",
+background:"#fff",
+width:"100%"
+}
+
+const goldBtn:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"#d4a24c",
+color:"#fff",
+border:"none",
+width:"100%"
+}
+
+const goldBtnSmall:CSSProperties={
+padding:"10px 16px",
+borderRadius:8,
+background:"#d4a24c",
+color:"#fff",
+border:"none"
+}
+
+const deleteBtn:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"red",
+color:"#fff",
+border:"none",
+width:"100%"
 }
