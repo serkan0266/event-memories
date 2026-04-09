@@ -31,6 +31,18 @@ load()
 
 },[])
 
+
+useEffect(()=>{
+
+if(viewer!==null){
+document.body.style.overflow="hidden"
+}else{
+document.body.style.overflow="auto"
+}
+
+},[viewer])
+
+
 async function load(){
 
 const {data:eventData} = await supabase
@@ -49,6 +61,7 @@ setUploads(data || [])
 
 }
 
+
 async function deletePhoto(id:string){
 
 if(!confirm("Foto verwijderen?")) return
@@ -62,6 +75,7 @@ setUploads(uploads.filter(u=>u.id!==id))
 setViewer(null)
 
 }
+
 
 return(
 
@@ -85,6 +99,7 @@ marginBottom:20
 }}>
 Galerij (gedeeld door gasten)
 </h2>
+
 
 <div style={{
 display:"grid",
@@ -175,9 +190,12 @@ alignItems:"center",
 justifyContent:"flex-start",
 paddingTop:80,
 overflowY:"auto",
+overscrollBehavior:"contain",
+WebkitOverflowScrolling:"touch",
 zIndex:1000
 }}
 >
+
 
 {/* ICONS */}
 
@@ -235,6 +253,7 @@ maxHeight:"60vh",
 borderRadius:10
 }}
 />
+
 
 <div style={{
 color:"#fff",
