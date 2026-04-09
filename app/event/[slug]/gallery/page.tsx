@@ -59,6 +59,7 @@ await supabase
 .eq("id",id)
 
 setUploads(uploads.filter(u=>u.id!==id))
+setViewer(null)
 
 }
 
@@ -143,6 +144,7 @@ fontSize:12
 
 </div>
 
+
 {viewer!==null && (
 
 <div
@@ -175,6 +177,54 @@ zIndex:1000
 }}
 >
 
+{/* ICONS */}
+
+<div style={{
+position:"absolute",
+top:20,
+right:20,
+display:"flex",
+gap:12,
+alignItems:"center"
+}}>
+
+{uploads[viewer].uploader_id === uploaderId && (
+
+<button
+onClick={()=>deletePhoto(uploads[viewer].id)}
+style={{
+background:"rgba(255,255,255,0.9)",
+border:"none",
+borderRadius:"50%",
+width:40,
+height:40,
+fontSize:18,
+cursor:"pointer"
+}}
+>
+🗑️
+</button>
+
+)}
+
+<button
+onClick={()=>setViewer(null)}
+style={{
+background:"rgba(255,255,255,0.9)",
+border:"none",
+borderRadius:"50%",
+width:40,
+height:40,
+fontSize:18,
+cursor:"pointer"
+}}
+>
+✕
+</button>
+
+</div>
+
+
 <img
 src={uploads[viewer].file_url}
 style={{
@@ -197,37 +247,6 @@ textAlign:"center"
 )}
 
 </div>
-
-{uploads[viewer].uploader_id === uploaderId && (
-
-<button
-onClick={()=>deletePhoto(uploads[viewer].id)}
-style={{
-marginTop:10,
-background:"red",
-color:"#fff",
-border:"none",
-padding:"8px 14px",
-borderRadius:8
-}}
->
-Verwijder foto
-</button>
-
-)}
-
-<button
-onClick={()=>setViewer(null)}
-style={{
-marginTop:15,
-background:"#fff",
-border:"none",
-padding:"8px 14px",
-borderRadius:8
-}}
->
-Sluiten
-</button>
 
 </div>
 
