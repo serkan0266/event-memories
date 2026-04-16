@@ -78,7 +78,6 @@ if(u.name) guests.add(u.name)
 
 })
 
-// 🔥 ECHTE STORAGE
 const storageBytes = uploads?.reduce((total, file) => {
 return total + (file.file_size || 0)
 }, 0) || 0
@@ -118,7 +117,8 @@ if(!name||!slug) return
 await supabase.from("events").insert({
 name,
 slug,
-status:"open"
+status:"open",
+download_password: "" // 🔥 NIEUW
 })
 
 setName("")
@@ -216,13 +216,15 @@ setEditing({...event})
 }
 
 
+// 🔥 SAVE MET PASSWORD
 async function saveEvent(){
 
 await supabase
 .from("events")
 .update({
 name:editing.name,
-slug:editing.slug
+slug:editing.slug,
+download_password: editing.download_password || "" // 🔥 NIEUW
 })
 .eq("id",editing.id)
 
@@ -443,6 +445,7 @@ Verwijderen
 </div>
 
 
+{/* 🔥 EDIT MET PASSWORD */}
 {editing && (
 
 <div style={{marginTop:40,...cardStyle}}>
@@ -459,6 +462,13 @@ style={inputStyle}
 value={editing.slug}
 onChange={(e)=>setEditing({...editing,slug:e.target.value})}
 style={inputStyle}
+/>
+
+<input
+placeholder="Download wachtwoord"
+value={editing.download_password || ""}
+onChange={(e)=>setEditing({...editing,download_password:e.target.value})}
+style={{...inputStyle, marginTop:10}}
 />
 
 <button onClick={saveEvent} style={goldBtnSmall}>
