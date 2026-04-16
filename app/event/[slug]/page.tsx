@@ -66,7 +66,7 @@ setUploading(false)
 return
 }
 
-// 🔥 nette mapnaam maken
+// 🔥 slug map
 const cleanSlug = event.slug.replace(/[^a-z0-9]/gi, "-").toLowerCase()
 
 for(const file of Array.from(files) as File[]){
@@ -76,7 +76,7 @@ if(!file.type.startsWith("image")) continue
 // 🔥 veilige filename
 const cleanName = file.name.replace(/[^a-z0-9.]/gi, "-").toLowerCase()
 
-// 🔥 NIEUWE PATH STRUCTUUR
+// 🔥 nette path
 const path = `${cleanSlug}/${Date.now()}-${cleanName}`
 
 const {error} = await supabase.storage
@@ -93,6 +93,7 @@ const {data:url} = supabase.storage
 .from("uploads")
 .getPublicUrl(path)
 
+// 🔥 NIEUW: file_size opslaan
 await supabase.from("uploads").insert({
 event_id:event.id,
 file_url:url.publicUrl,
@@ -100,7 +101,8 @@ type:"image",
 name:name,
 message:message,
 uploader_id:uploaderId,
-user_id:userId
+user_id:userId,
+file_size: file.size // 🔥 BELANGRIJK
 })
 
 done++
