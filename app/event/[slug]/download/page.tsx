@@ -48,27 +48,54 @@ const totalZips = Math.ceil(count / 100)
 return(
 
 <div style={{
-maxWidth:600,
-margin:"auto",
-padding:20,
-textAlign:"center"
+minHeight:"100vh",
+display:"flex",
+alignItems:"center",
+justifyContent:"center",
+background:"#f8f6f2",
+padding:20
 }}>
+
+<div style={{
+maxWidth:500,
+width:"100%",
+textAlign:"center",
+background:"#fff",
+padding:"40px 30px",
+borderRadius:20,
+boxShadow:"0 20px 60px rgba(0,0,0,0.08)"
+}}>
+
+{/* 🔥 LOGO */}
 <img
 src="https://sharememories.nl/wp-content/uploads/2026/04/Untitled_design-removebg-preview.png"
 style={{
-width:140,
-marginBottom:20
+width:200,
+margin:"0 auto 25px auto",
+display:"block",
+objectFit:"contain",
+filter:"drop-shadow(0 8px 20px rgba(0,0,0,0.15))"
 }}
 />
-<h1 style={{fontSize:32}}>
+
+{/* 🔥 TITLE */}
+<h1 style={{
+fontSize:28,
+marginBottom:10
+}}>
 Download alle herinneringen 📸
 </h1>
 
-<p style={{marginTop:10,opacity:0.7}}>
+<p style={{
+opacity:0.6,
+fontSize:15,
+marginBottom:25
+}}>
 Klik op de bestanden hieronder om alles te downloaden
 </p>
 
-<div style={{marginTop:30}}>
+{/* 🔥 BUTTONS */}
+<div>
 
 {Array.from({length: totalZips}, (_, i)=>{
 
@@ -80,12 +107,15 @@ key={batch}
 href={`/api/zip?event=${event.id}&batch=${batch}`}
 style={{
 display:"block",
-marginTop:10,
-padding:"14px",
-borderRadius:10,
+marginTop:12,
+padding:"16px",
+borderRadius:12,
 background:"#d4a24c",
 color:"#fff",
-textDecoration:"none"
+textDecoration:"none",
+fontWeight:600,
+fontSize:16,
+boxShadow:"0 6px 20px rgba(212,162,76,0.3)"
 }}
 >
 Download ZIP {batch} ({(batch-1)*100} - {batch*100})
@@ -93,6 +123,8 @@ Download ZIP {batch} ({(batch-1)*100} - {batch*100})
 )
 
 })}
+
+</div>
 
 </div>
 
