@@ -86,12 +86,9 @@ const {data:url} = supabase.storage
 .from("uploads")
 .getPublicUrl(path)
 
-// 🔥 geoptimaliseerde image opslaan
-const optimizedUrl = `${url.publicUrl}?width=1200&quality=70`
-
 await supabase.from("uploads").insert({
 event_id:event.id,
-file_url:optimizedUrl,
+file_url:url.publicUrl,
 type:"image",
 name:name,
 message:message,
@@ -114,10 +111,8 @@ if(!event){
 return <div style={{padding:40}}>Loading...</div>
 }
 
-// 🔥 snelle header (GEEN lazy)
-const headerUrl = event.header_image 
-? `${event.header_image}?width=1200&quality=70` 
-: null
+// 🔥 DIRECTE HEADER (SNELSTE)
+const headerUrl = event.header_image || null
 
 if(event.status==="closed"){
 
