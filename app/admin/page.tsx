@@ -9,6 +9,9 @@ export default function AdminPage(){
 
 const ADMIN_PASSWORD="66"
 
+// 🔥 NIEUW: centraal domein
+const BASE_URL = "https://app.sharememories.nl"
+
 const [loggedIn,setLoggedIn]=useState(false)
 const [password,setPassword]=useState("")
 
@@ -345,7 +348,8 @@ Maak event
 
 {events.map((e)=>{
 
-const url=`https://memories.showverhuur.nl/event/${e.slug}`
+// 🔥 FIXED URL
+const url = `${BASE_URL}/event/${e.slug}`
 
 return(
 
@@ -383,13 +387,13 @@ Uploads bekijken
 Download QR
 </button>
 
-<button onClick={()=>editEvent(e)} style={btnStyle}>
-Bewerken
-</button>
-
 <a href={`/api/zip?event=${e.id}`} style={goldBtn}>
 Download ZIP
 </a>
+
+<button onClick={()=>editEvent(e)} style={btnStyle}>
+Bewerken
+</button>
 
 <button onClick={()=>deleteEvent(e.id)} style={deleteBtn}>
 Verwijderen
