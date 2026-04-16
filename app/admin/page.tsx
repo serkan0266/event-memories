@@ -2,212 +2,532 @@
 
 import { useEffect,useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { useParams } from "next/navigation"
+import QRCode from "react-qr-code"
+import type { CSSProperties } from "react"
 
-export default function DownloadPage(){
+export default function AdminPage(){
 
-const params = useParams()
-const slug = params.slug as string
+const ADMIN_PASSWORD="66"
+const BASE_URL = "https://app.sharememories.nl"
 
-const [event,setEvent] = useState<any>(null)
-const [count,setCount] = useState(0)
+const [loggedIn,setLoggedIn]=useState(false)
+const [password,setPassword]=useState("")
 
-const [input,setInput] = useState("")
-const [unlocked,setUnlocked] = useState(false)
+const [events,setEvents]=useState<any[]>([])
+const [uploads,setUploads]=useState<any[]>([])
+
+const [viewEvent,setViewEvent]=useState<string | null>(null)
+const [editing,setEditing]=useState<any>(null)
+
+const [name,setName]=useState("")
+const [slug,setSlug]=useState("")
+
+const [stats,setStats]=useState({
+events:0,
+photos:0,
+videos:0,
+storage:0
+})
 
 useEffect(()=>{
-load()
-},[])
+if(loggedIn){
+loadEvents()
+}
+},[loggedIn])
 
-async function load(){
 
-const {data:eventData} = await supabase
+function login(){
+if(password===ADMIN_PASSWORD){
+setLoggedIn(true)
+}else{
+alert("Verkeerd wachtwoord")
+}
+}
+
+
+async function loadEvents(){
+
+const {data,error}=await supabase
 .from("events")
 .select("*")
-.eq("slug",slug)
-.single()
+.order("created_at",{ascending:false})
 
-if(!eventData) return
+if(error){
+console.error("EVENT ERROR:",error)
+return
+}
 
-setEvent(eventData)
+if(!data) return
 
-const {data:uploads} = await supabase
+let list:any[]=[]
+let totalPhotos=0
+let totalVideos=0
+let totalStorage=0
+
+for(const e of data){
+
+const {data:uploads,error:uploadError}=await supabase
 .from("uploads")
-.select("id,type")
-.eq("event_id",eventData.id)
+.select("*")
+.eq("event_id",e.id)
 
-const images = uploads?.filter(u=>u.type==="image") || []
+if(uploadError){
+console.error("UPLOAD ERROR:",uploadError)
+continue
+}
 
-setCount(images.length)
+let photos=0
+let videos=0
+let guests=new Set()
+
+uploads?.forEach((u:any)=>{
+
+if(u.type==="image") photos++
+if(u.type==="video") videos++
+if(u.name) guests.add(u.name)
+
+})
+
+// 🔥 SAFE STORAGE FIX
+let storageBytes = 0
+
+uploads?.forEach((file:any)=>{
+if(file.file_size){
+storageBytes += Number(file.file_size)
+}
+})
+
+const storageMB = storageBytes / 1024 / 1024
+
+totalPhotos+=photos
+totalVideos+=videos
+totalStorage+=storageMB
+
+list.push({
+...e,
+photos,
+videos,
+guests:guests.size,
+storage: storageMB
+})
 
 }
 
-if(!event){
-return <div style={{padding:40}}>Loading...</div>
+setEvents(list)
+
+setStats({
+events:data.length,
+photos:totalPhotos,
+videos:totalVideos,
+storage:totalStorage
+})
+
 }
 
-const totalZips = Math.ceil(count / 100)
+
+async function createEvent(){
+
+if(!name||!slug) return
+
+await supabase.from("events").insert({
+name,
+slug,
+status:"open",
+download_password:""
+})
+
+setName("")
+setSlug("")
+
+loadEvents()
+
+}
 
 
-// 🔒 PASSWORD CHECK
-if(event.download_password && !unlocked){
+async function toggleEvent(id:string,status:string){
+
+await supabase
+.from("events")
+.update({status})
+.eq("id",id)
+
+loadEvents()
+
+}
+
+
+async function viewUploads(eventId:string){
+
+if(viewEvent===eventId){
+setViewEvent(null)
+return
+}
+
+setViewEvent(eventId)
+
+const {data}=await supabase
+.from("uploads")
+.select("*")
+.eq("event_id",eventId)
+
+setUploads(data||[])
+
+}
+
+
+// DELETE UPLOAD + STORAGE
+async function deleteUpload(upload:any){
+
+if(!confirm("Foto verwijderen?")) return
+
+const path = upload.file_url.split("/uploads/")[1]
+
+if(path){
+await supabase.storage.from("uploads").remove([path])
+}
+
+await supabase.from("uploads").delete().eq("id",upload.id)
+
+setUploads(uploads.filter(u=>u.id!==upload.id))
+
+}
+
+
+// DELETE EVENT + ALLES
+async function deleteEvent(id:string){
+
+if(!confirm("Event verwijderen?")) return
+
+const {data:files}=await supabase
+.from("uploads")
+.select("*")
+.eq("event_id",id)
+
+if(files){
+const paths = files.map(f=>f.file_url.split("/uploads/")[1]).filter(Boolean)
+
+if(paths.length){
+await supabase.storage.from("uploads").remove(paths)
+}
+}
+
+await supabase.from("uploads").delete().eq("event_id",id)
+await supabase.from("events").delete().eq("id",id)
+
+loadEvents()
+
+}
+
+
+function editEvent(event:any){
+setEditing({...event})
+}
+
+
+async function saveEvent(){
+
+await supabase
+.from("events")
+.update({
+name:editing.name,
+slug:editing.slug,
+download_password: editing.download_password || ""
+})
+.eq("id",editing.id)
+
+setEditing(null)
+loadEvents()
+
+}
+
+
+async function uploadHeader(e:any,eventId:string){
+
+const file=e.target.files[0]
+if(!file) return
+
+const path=`headers/${Date.now()}-${file.name}`
+
+const {error}=await supabase.storage.from("uploads").upload(path,file)
+
+if(error){
+alert("Upload fout")
+return
+}
+
+const {data:url}=supabase.storage.from("uploads").getPublicUrl(path)
+
+await supabase
+.from("events")
+.update({header_image:url.publicUrl})
+.eq("id",eventId)
+
+alert("Header geupload")
+loadEvents()
+
+}
+
+
+function downloadQR(){
+
+const svg=document.querySelector("svg")
+if(!svg) return
+
+const data=new XMLSerializer().serializeToString(svg)
+
+const canvas=document.createElement("canvas")
+const img=new Image()
+
+img.src="data:image/svg+xml;base64,"+btoa(data)
+
+img.onload=()=>{
+
+canvas.width=img.width
+canvas.height=img.height
+
+const ctx=canvas.getContext("2d")
+ctx?.drawImage(img,0,0)
+
+const a=document.createElement("a")
+a.download="qr-code.png"
+a.href=canvas.toDataURL()
+a.click()
+
+}
+
+}
+
+
+if(!loggedIn){
 
 return(
 
-<div style={{
-minHeight:"100vh",
-display:"flex",
-alignItems:"center",
-justifyContent:"center",
-background:"#f8f6f2",
-padding:20
-}}>
+<div style={loginStyle}>
 
-<div style={{
-background:"#fff",
-padding:30,
-borderRadius:20,
-textAlign:"center",
-boxShadow:"0 20px 60px rgba(0,0,0,0.1)",
-width:"100%",
-maxWidth:400
-}}>
-
-<h2 style={{fontSize:22}}>Beveiligde download 🔒</h2>
-
-<p style={{opacity:0.7,marginTop:10,fontSize:14}}>
-Voer het wachtwoord in om toegang te krijgen
-</p>
+<h2>Memories Admin</h2>
 
 <input
 type="password"
 placeholder="Wachtwoord"
-value={input}
-onChange={(e)=>setInput(e.target.value)}
-style={{
-marginTop:20,
-padding:12,
-borderRadius:10,
-border:"1px solid #ddd",
-width:"100%"
-}}
+value={password}
+onChange={(e)=>setPassword(e.target.value)}
+style={loginInput}
 />
 
-<button
-onClick={()=>{
-if(input === event.download_password){
-setUnlocked(true)
-}else{
-alert("Verkeerd wachtwoord")
+<button onClick={login} style={goldBtnSmall}>
+Login
+</button>
+
+</div>
+
+)
+
 }
-}}
-style={{
-marginTop:15,
-padding:"12px",
-background:"#d4a24c",
-color:"#fff",
-border:"none",
-borderRadius:10,
-width:"100%"
-}}
->
-Ontgrendelen
+
+
+return(
+
+<div style={containerStyle}>
+
+<h1>Memories Admin</h1>
+
+<div style={statsGrid}>
+<div style={statCard}><h3>Events</h3><b>{stats.events}</b></div>
+<div style={statCard}><h3>Foto's</h3><b>{stats.photos}</b></div>
+<div style={statCard}><h3>Video's</h3><b>{stats.videos}</b></div>
+<div style={statCard}><h3>Storage</h3><b>{stats.storage.toFixed(2)} MB</b></div>
+</div>
+
+
+<div style={cardStyle}>
+
+<h3>Nieuw event maken</h3>
+
+<div style={{display:"flex",gap:10}}>
+
+<input placeholder="Event naam" value={name} onChange={(e)=>setName(e.target.value)} style={inputStyle}/>
+<input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={inputStyle}/>
+
+<button onClick={createEvent} style={goldBtnSmall}>
+Maak event
 </button>
 
 </div>
 
 </div>
 
-)
 
-}
+<h2 style={{marginTop:40}}>Events</h2>
 
+<div style={eventGrid}>
 
-// 🔥 DOWNLOAD PAGE
-return(
+{events.map((e)=>{
 
-<div style={{
-minHeight:"100vh",
-display:"flex",
-alignItems:"center",
-justifyContent:"center",
-background:"#f8f6f2",
-padding:20
-}}>
-
-<div style={{
-maxWidth:500,
-width:"100%",
-textAlign:"center",
-background:"#fff",
-padding:"35px 25px",
-borderRadius:20,
-boxShadow:"0 20px 60px rgba(0,0,0,0.08)"
-}}>
-
-{/* LOGO */}
-<img
-src="https://sharememories.nl/wp-content/uploads/2026/04/Untitled_design-removebg-preview.png"
-style={{
-width:"clamp(140px, 40vw, 200px)",
-margin:"0 auto 20px auto",
-display:"block"
-}}
-/>
-
-{/* TITLE */}
-<h1 style={{
-fontSize:"clamp(22px, 5vw, 28px)",
-marginBottom:8
-}}>
-Download alle herinneringen 📸
-</h1>
-
-{/* 🔥 SUBTEXT TERUG */}
-<p style={{
-opacity:0.6,
-fontSize:"clamp(13px, 3.5vw, 15px)",
-marginBottom:25,
-lineHeight:1.5
-}}>
-Klik op de bestanden hieronder om alles te downloaden
-</p>
-
-{/* BUTTONS */}
-<div>
-
-{Array.from({length: totalZips}, (_, i)=>{
-
-const batch = i + 1
+const url = `${BASE_URL}/event/${e.slug}`
 
 return(
-<a
-key={batch}
-href={`/api/zip?event=${event.id}&batch=${batch}`}
-style={{
-display:"block",
-marginTop:12,
-padding:"16px",
-borderRadius:12,
-background:"#d4a24c",
-color:"#fff",
-textDecoration:"none",
-fontWeight:600,
-fontSize:"clamp(14px, 4vw, 16px)"
-}}
->
-Download ZIP {batch} ({(batch-1)*100} - {batch*100})
-</a>
+
+<div key={e.id} style={cardStyle}>
+
+<h3>{e.name}</h3>
+
+<select value={e.status} onChange={(ev)=>toggleEvent(e.id,ev.target.value)} style={btnStyle}>
+<option value="open">✅ Event open</option>
+<option value="closed">❌ Event gesloten</option>
+</select>
+
+<p>👥 {e.guests} gasten hebben geupload</p>
+<p>📸 {e.photos} foto's</p>
+<p>🎥 {e.videos} video's</p>
+<p>💾 {e.storage.toFixed(2)} MB</p>
+
+<QRCode value={url} size={120}/>
+
+<input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
+
+<a href={url} target="_blank" style={btnStyle}>Open Event</a>
+
+<button onClick={()=>viewUploads(e.id)} style={btnStyle}>
+Uploads bekijken
+</button>
+
+<button onClick={downloadQR} style={btnStyle}>
+Download QR
+</button>
+
+<button onClick={()=>editEvent(e)} style={btnStyle}>
+Bewerken
+</button>
+
+<button onClick={()=>deleteEvent(e.id)} style={deleteBtn}>
+Verwijderen
+</button>
+
+</div>
+
 )
 
 })}
 
 </div>
 
+
+{editing && (
+
+<div style={{marginTop:40,...cardStyle}}>
+
+<h2>Event bewerken</h2>
+
+<input value={editing.name} onChange={(e)=>setEditing({...editing,name:e.target.value})} style={inputStyle}/>
+<input value={editing.slug} onChange={(e)=>setEditing({...editing,slug:e.target.value})} style={inputStyle}/>
+
+<input
+placeholder="Download wachtwoord"
+value={editing.download_password || ""}
+onChange={(e)=>setEditing({...editing,download_password:e.target.value})}
+style={{...inputStyle,marginTop:10}}
+/>
+
+<button onClick={saveEvent} style={goldBtnSmall}>
+Opslaan
+</button>
+
 </div>
+
+)}
 
 </div>
 
 )
 
+}
+
+
+/* STYLES */
+
+const containerStyle:CSSProperties={
+background:"#f5efe6",
+minHeight:"100vh",
+padding:40
+}
+
+const loginStyle:CSSProperties={
+height:"100vh",
+display:"flex",
+justifyContent:"center",
+alignItems:"center",
+flexDirection:"column",
+background:"#f5efe6"
+}
+
+const loginInput:CSSProperties={
+width:220,
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+marginBottom:10
+}
+
+const statsGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
+gap:20,
+marginBottom:40
+}
+
+const eventGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,320px)",
+gap:25
+}
+
+const statCard:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 2px 8px rgba(0,0,0,0.05)"
+}
+
+const cardStyle:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
+}
+
+const inputStyle:CSSProperties={
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+width:"100%"
+}
+
+const btnStyle:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+border:"1px solid #ddd",
+background:"#fff",
+width:"100%",
+textAlign:"center"
+}
+
+const goldBtnSmall:CSSProperties={
+padding:"10px 16px",
+borderRadius:8,
+background:"#d4a24c",
+color:"#fff",
+border:"none"
+}
+
+const deleteBtn:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"red",
+color:"#fff",
+border:"none",
+width:"100%"
 }
