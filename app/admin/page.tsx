@@ -8,8 +8,6 @@ import type { CSSProperties } from "react"
 export default function AdminPage(){
 
 const ADMIN_PASSWORD="66"
-
-// 🔥 NIEUW: centraal domein
 const BASE_URL = "https://app.sharememories.nl"
 
 const [loggedIn,setLoggedIn]=useState(false)
@@ -80,18 +78,23 @@ if(u.name) guests.add(u.name)
 
 })
 
-const storage=(uploads?.length||0)*5
+// 🔥 ECHTE STORAGE
+const storageBytes = uploads?.reduce((total, file) => {
+return total + (file.file_size || 0)
+}, 0) || 0
+
+const storageMB = storageBytes / 1024 / 1024
 
 totalPhotos+=photos
 totalVideos+=videos
-totalStorage+=storage
+totalStorage+=storageMB
 
 list.push({
 ...e,
 photos,
 videos,
 guests:guests.size,
-storage
+storage: storageMB
 })
 
 }
@@ -157,16 +160,53 @@ setUploads(data||[])
 }
 
 
-async function deleteUpload(id:string){
+// 🔥 DELETE UPLOAD + STORAGE
+async function deleteUpload(upload:any){
 
 if(!confirm("Foto verwijderen?")) return
+
+const path = upload.file_url.split("/uploads/")[1]
+
+if(path){
+await supabase.storage
+.from("uploads")
+.remove([path])
+}
 
 await supabase
 .from("uploads")
 .delete()
-.eq("id",id)
+.eq("id",upload.id)
 
-setUploads(uploads.filter(u=>u.id!==id))
+setUploads(uploads.filter(u=>u.id!==upload.id))
+
+}
+
+
+// 🔥 DELETE EVENT + ALLES
+async function deleteEvent(id:string){
+
+if(!confirm("Event verwijderen?")) return
+
+const {data:files}=await supabase
+.from("uploads")
+.select("*")
+.eq("event_id",id)
+
+if(files){
+const paths = files.map(f=>f.file_url.split("/uploads/")[1]).filter(Boolean)
+
+if(paths.length){
+await supabase.storage
+.from("uploads")
+.remove(paths)
+}
+}
+
+await supabase.from("uploads").delete().eq("event_id",id)
+await supabase.from("events").delete().eq("id",id)
+
+loadEvents()
 
 }
 
@@ -187,21 +227,6 @@ slug:editing.slug
 .eq("id",editing.id)
 
 setEditing(null)
-
-loadEvents()
-
-}
-
-
-async function deleteEvent(id:string){
-
-if(!confirm("Event verwijderen?")) return
-
-await supabase
-.from("events")
-.delete()
-.eq("id",id)
-
 loadEvents()
 
 }
@@ -233,7 +258,6 @@ await supabase
 .eq("id",eventId)
 
 alert("Header geupload")
-
 loadEvents()
 
 }
@@ -308,7 +332,7 @@ return(
 <div style={statCard}><h3>Events</h3><b>{stats.events}</b></div>
 <div style={statCard}><h3>Foto's</h3><b>{stats.photos}</b></div>
 <div style={statCard}><h3>Video's</h3><b>{stats.videos}</b></div>
-<div style={statCard}><h3>Storage</h3><b>{stats.storage} MB</b></div>
+<div style={statCard}><h3>Storage</h3><b>{stats.storage.toFixed(2)} MB</b></div>
 
 </div>
 
@@ -348,7 +372,6 @@ Maak event
 
 {events.map((e)=>{
 
-// 🔥 FIXED URL
 const url = `${BASE_URL}/event/${e.slug}`
 
 return(
@@ -369,7 +392,7 @@ style={btnStyle}
 <p>👥 {e.guests} gasten hebben geupload</p>
 <p>📸 {e.photos} foto's</p>
 <p>🎥 {e.videos} video's</p>
-<p>💾 {e.storage} MB</p>
+<p>💾 {e.storage.toFixed(2)} MB</p>
 
 <QRCode value={url} size={120}/>
 
@@ -457,7 +480,7 @@ Opslaan
 <a href={u.file_url} target="_blank">Download</a>
 
 <button
-onClick={()=>deleteUpload(u.id)}
+onClick={()=>deleteUpload(u)}
 style={{
 marginTop:10,
 background:"red",
