@@ -18,7 +18,6 @@ const [uploading,setUploading] = useState(false)
 const [progress,setProgress] = useState(0)
 const [count,setCount] = useState(0)
 const [uploaderId,setUploaderId] = useState("")
-const [imgLoaded,setImgLoaded] = useState(false) // 🔥 nieuw
 
 useEffect(()=>{
 
@@ -44,12 +43,6 @@ const {data} = await supabase
 .single()
 
 setEvent(data)
-
-// 🔥 preload header image
-if(data?.header_image){
-const img = new Image()
-img.src = `${data.header_image}?width=1200&quality=70`
-}
 
 }
 
@@ -121,7 +114,7 @@ if(!event){
 return <div style={{padding:40}}>Loading...</div>
 }
 
-// 🔥 header url
+// 🔥 snelle header (GEEN lazy)
 const headerUrl = event.header_image 
 ? `${event.header_image}?width=1200&quality=70` 
 : null
@@ -135,16 +128,9 @@ return(
 {headerUrl && (
 <img 
 src={headerUrl}
-loading="lazy"
-onLoad={()=>setImgLoaded(true)}
-style={{
-width:"100%",
-borderRadius:16,
-marginBottom:25,
-opacity: imgLoaded ? 1 : 0,
-transition:"opacity 0.4s ease",
-background:"#f3f3f3"
-}}
+loading="eager"
+fetchPriority="high"
+style={{width:"100%",borderRadius:16,marginBottom:25}}
 />
 )}
 
@@ -190,15 +176,12 @@ textAlign:"center"
 
 <img
 src={headerUrl}
-loading="lazy"
-onLoad={()=>setImgLoaded(true)}
+loading="eager"
+fetchPriority="high"
 style={{
 width:"100%",
 borderRadius:16,
-marginBottom:25,
-opacity: imgLoaded ? 1 : 0,
-transition:"opacity 0.4s ease",
-background:"#f3f3f3"
+marginBottom:25
 }}
 />
 
@@ -352,12 +335,12 @@ gap:10
 }}>
 
 <img
-src="https://showverhuur.nl/wp-content/uploads/2026/04/Memories-logo.png"
+src="https://sharememories.nl/wp-content/uploads/2026/04/Untitled_design-removebg-preview.png"
 style={{width:110}}
 />
 
 <p style={{fontSize:14}}>
-Powered by Showverhuur.nl
+Powered by ShareMemories
 </p>
 
 </div>
