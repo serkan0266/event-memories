@@ -66,11 +66,18 @@ setUploading(false)
 return
 }
 
+// 🔥 nette mapnaam maken
+const cleanSlug = event.slug.replace(/[^a-z0-9]/gi, "-").toLowerCase()
+
 for(const file of Array.from(files) as File[]){
 
 if(!file.type.startsWith("image")) continue
 
-const path = `${event.id}/${Date.now()}-${file.name}`
+// 🔥 veilige filename
+const cleanName = file.name.replace(/[^a-z0-9.]/gi, "-").toLowerCase()
+
+// 🔥 NIEUWE PATH STRUCTUUR
+const path = `${cleanSlug}/${Date.now()}-${cleanName}`
 
 const {error} = await supabase.storage
 .from("uploads")
@@ -111,7 +118,6 @@ if(!event){
 return <div style={{padding:40}}>Loading...</div>
 }
 
-// 🔥 DIRECTE HEADER (SNELSTE)
 const headerUrl = event.header_image || null
 
 if(event.status==="closed"){
