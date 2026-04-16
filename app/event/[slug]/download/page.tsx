@@ -12,6 +12,9 @@ const slug = params.slug as string
 const [event,setEvent] = useState<any>(null)
 const [count,setCount] = useState(0)
 
+const [input,setInput] = useState("")
+const [unlocked,setUnlocked] = useState(false)
+
 useEffect(()=>{
 load()
 },[])
@@ -45,6 +48,79 @@ return <div style={{padding:40}}>Loading...</div>
 
 const totalZips = Math.ceil(count / 100)
 
+
+// 🔒 ALS wachtwoord bestaat → eerst invoer tonen
+if(event.download_password && !unlocked){
+
+return(
+
+<div style={{
+minHeight:"100vh",
+display:"flex",
+alignItems:"center",
+justifyContent:"center",
+background:"#f8f6f2"
+}}>
+
+<div style={{
+background:"#fff",
+padding:40,
+borderRadius:20,
+textAlign:"center",
+boxShadow:"0 20px 60px rgba(0,0,0,0.1)"
+}}>
+
+<h2>Beveiligde download 🔒</h2>
+
+<p style={{opacity:0.7,marginTop:10}}>
+Voer het wachtwoord in om toegang te krijgen
+</p>
+
+<input
+type="password"
+placeholder="Wachtwoord"
+value={input}
+onChange={(e)=>setInput(e.target.value)}
+style={{
+marginTop:20,
+padding:12,
+borderRadius:10,
+border:"1px solid #ddd",
+width:"100%"
+}}
+/>
+
+<button
+onClick={()=>{
+if(input === event.download_password){
+setUnlocked(true)
+}else{
+alert("Verkeerd wachtwoord")
+}
+}}
+style={{
+marginTop:15,
+padding:"12px 20px",
+background:"#d4a24c",
+color:"#fff",
+border:"none",
+borderRadius:10,
+width:"100%"
+}}
+>
+Ontgrendelen
+</button>
+
+</div>
+
+</div>
+
+)
+
+}
+
+
+// 🔥 NORMALE DOWNLOAD PAGINA
 return(
 
 <div style={{
@@ -66,36 +142,20 @@ borderRadius:20,
 boxShadow:"0 20px 60px rgba(0,0,0,0.08)"
 }}>
 
-{/* 🔥 LOGO */}
 <img
 src="https://sharememories.nl/wp-content/uploads/2026/04/Untitled_design-removebg-preview.png"
 style={{
 width:200,
 margin:"0 auto 25px auto",
-display:"block",
-objectFit:"contain",
-filter:"drop-shadow(0 8px 20px rgba(0,0,0,0.15))"
+display:"block"
 }}
 />
 
-{/* 🔥 TITLE */}
-<h1 style={{
-fontSize:28,
-marginBottom:10
-}}>
+<h1 style={{fontSize:28}}>
 Download alle herinneringen 📸
 </h1>
 
-<p style={{
-opacity:0.6,
-fontSize:15,
-marginBottom:25
-}}>
-Klik op de bestanden hieronder om alles te downloaden
-</p>
-
-{/* 🔥 BUTTONS */}
-<div>
+<div style={{marginTop:20}}>
 
 {Array.from({length: totalZips}, (_, i)=>{
 
@@ -107,18 +167,15 @@ key={batch}
 href={`/api/zip?event=${event.id}&batch=${batch}`}
 style={{
 display:"block",
-marginTop:12,
+marginTop:10,
 padding:"16px",
 borderRadius:12,
 background:"#d4a24c",
 color:"#fff",
-textDecoration:"none",
-fontWeight:600,
-fontSize:16,
-boxShadow:"0 6px 20px rgba(212,162,76,0.3)"
+textDecoration:"none"
 }}
 >
-Download ZIP {batch} ({(batch-1)*100} - {batch*100})
+Download ZIP {batch}
 </a>
 )
 
