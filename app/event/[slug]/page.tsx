@@ -57,7 +57,6 @@ setCount(files.length)
 
 let done = 0
 
-// 🔥 NIEUW: user ophalen
 const { data: userData } = await supabase.auth.getUser()
 const userId = userData?.user?.id
 
@@ -78,33 +77,30 @@ const {error} = await supabase.storage
 .upload(path,file)
 
 if(error){
-
 alert("Upload fout")
 setUploading(false)
 return
-
 }
 
 const {data:url} = supabase.storage
 .from("uploads")
 .getPublicUrl(path)
 
-await supabase.from("uploads").insert({
+// 🔥 OPTIMALISATIE
+const optimizedUrl = `${url.publicUrl}?width=1200&quality=70`
 
+await supabase.from("uploads").insert({
 event_id:event.id,
-file_url:url.publicUrl,
+file_url:optimizedUrl,
 type:"image",
 name:name,
 message:message,
-uploader_id:uploaderId, // oude systeem (mag blijven)
-user_id:userId // 🔥 NIEUW (BELANGRIJK)
-
+uploader_id:uploaderId,
+user_id:userId
 })
 
 done++
-
 setProgress(Math.round((done/files.length)*100))
-
 }
 
 setUploading(false)
@@ -118,14 +114,23 @@ if(!event){
 return <div style={{padding:40}}>Loading...</div>
 }
 
+// 🔥 HEADER OPTIMALISATIE
+const headerUrl = event.header_image 
+? `${event.header_image}?width=1200&quality=70` 
+: null
+
 if(event.status==="closed"){
 
 return(
 
 <div style={{maxWidth:650,margin:"auto",padding:20,textAlign:"center"}}>
 
-{event.header_image && (
-<img src={event.header_image} style={{width:"100%",borderRadius:16,marginBottom:25}}/>
+{headerUrl && (
+<img 
+src={headerUrl} 
+loading="lazy"
+style={{width:"100%",borderRadius:16,marginBottom:25}}
+/>
 )}
 
 <h1 style={{fontFamily:"cursive",fontSize:46}}>
@@ -166,12 +171,11 @@ padding:20,
 textAlign:"center"
 }}>
 
-{event.header_image && (
+{headerUrl && (
 
 <img
-src={event.header_image}
-loading="eager"
-fetchPriority="high"
+src={headerUrl}
+loading="lazy"
 style={{
 width:"100%",
 borderRadius:16,
