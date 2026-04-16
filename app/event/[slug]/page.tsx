@@ -57,6 +57,16 @@ setCount(files.length)
 
 let done = 0
 
+// 🔥 NIEUW: user ophalen
+const { data: userData } = await supabase.auth.getUser()
+const userId = userData?.user?.id
+
+if(!userId){
+alert("Fout met gebruiker, probeer opnieuw")
+setUploading(false)
+return
+}
+
 for(const file of Array.from(files) as File[]){
 
 if(!file.type.startsWith("image")) continue
@@ -86,7 +96,8 @@ file_url:url.publicUrl,
 type:"image",
 name:name,
 message:message,
-uploader_id:uploaderId
+uploader_id:uploaderId, // oude systeem (mag blijven)
+user_id:userId // 🔥 NIEUW (BELANGRIJK)
 
 })
 
