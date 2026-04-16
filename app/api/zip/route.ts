@@ -1,90 +1,99 @@
-import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import JSZip from "jszip"
 import { createClient } from "@supabase/supabase-js"
+
+export async function GET(req: NextRequest){
 
 const supabase = createClient(
 process.env.NEXT_PUBLIC_SUPABASE_URL!,
 process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET(req: Request) {
-
 const { searchParams } = new URL(req.url)
 const eventId = searchParams.get("event")
+const batch = Number(searchParams.get("batch") || 1)
 
-if (!eventId) {
-return NextResponse.json({ error: "No event id" }, { status: 400 })
+if(!eventId){
+return new Response("Missing event id",{status:400})
 }
 
-const { data: uploads } = await supabase
+// 🔥 event ophalen
+const {data:event} = await supabase
+.from("events")
+.select("*")
+.eq("id",eventId)
+.single()
+
+// 🔥 uploads ophalen
+const {data:uploads} = await supabase
 .from("uploads")
 .select("*")
-.eq("event_id", eventId)
+.eq("event_id",eventId)
+.order("created_at",{ascending:true})
 
-if (!uploads || uploads.length === 0) {
-return NextResponse.json({ error: "No uploads found" })
+if(!uploads){
+return new Response("No uploads",{status:404})
 }
 
+// 🔥 alleen images
+const images = uploads.filter(u=>u.type==="image")
+
+// 🔥 batch slicing
+const batchSize = 100
+const start = (batch - 1) * batchSize
+const end = start + batchSize
+
+const selectedImages = images.slice(start,end)
+
+// 🔥 zip maken
 const zip = new JSZip()
 
-const mediaFolder = zip.folder("Media")
-const messagesFolder = zip.folder("Berichten")
+// 📁 media folder
+const mediaFolder = zip.folder("media")
 
-const messages: Record<string, string> = {}
+// 🔥 images toevoegen
+for(const img of selectedImages){
 
-/* LOOP UPLOADS */
+try{
+const res = await fetch(img.file_url)
+const blob = await res.arrayBuffer()
 
-for (const u of uploads) {
-
-/* MEDIA FILES */
-
-if (u.file_url) {
-
-const res = await fetch(u.file_url)
-const buffer = await res.arrayBuffer()
-
-const filename = u.file_url.split("/").pop()
-
-mediaFolder?.file(filename!, buffer)
-
-}
-
-/* BERICHTEN */
-
-if (u.name && u.message) {
-
-if (!messages[u.name]) {
-messages[u.name] = u.message
+const fileName = img.file_url.split("/").pop()
+mediaFolder?.file(fileName!, blob)
+}catch(e){
+console.log("skip file",img.file_url)
 }
 
 }
 
+
+// 🔥 ALLEEN IN ZIP 1 → berichten
+if(batch === 1){
+
+const messages = uploads
+.filter(u=>u.name || u.message)
+.map(u=>`Naam: ${u.name || "-"}\nBericht: ${u.message || "-"}\n\n`)
+.join("")
+
+zip.folder("berichten")?.file("berichten.txt",messages)
+
 }
 
-/* CSV MAKEN */
 
-let csv = "Naam,Bericht\n"
+// 🔥 zip genereren
+const content = await zip.generateAsync({type:"arraybuffer"})
 
-for (const name in messages) {
+// 🔥 bestandsnaam netjes maken
+const cleanName = event.name
+.replace(/[^a-z0-9]/gi,"-")
+.toLowerCase()
 
-const message = messages[name].replace(/,/g, " ")
+const fileName = `${cleanName}-zip-${batch}.zip`
 
-csv += `${name},${message}\n`
-
-}
-
-messagesFolder?.file("berichten.csv", csv)
-
-/* ZIP GENEREREN */
-
-const content = await zip.generateAsync({
-type: "uint8array"
-})
-
-return new NextResponse(content as any, {
-headers: {
-"Content-Type": "application/zip",
-"Content-Disposition": "attachment; filename=event-download.zip"
+return new Response(content,{
+headers:{
+"Content-Type":"application/zip",
+"Content-Disposition":`attachment; filename=${fileName}`
 }
 })
 

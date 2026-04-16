@@ -410,9 +410,21 @@ Uploads bekijken
 Download QR
 </button>
 
-<a href={`/api/zip?event=${e.id}`} style={goldBtn}>
-Download ZIP
+{Array.from({length: Math.ceil(e.photos / 100)}, (_, i) => {
+
+const batch = i + 1
+
+return (
+<a
+key={batch}
+href={`/api/zip?event=${e.id}&batch=${batch}`}
+style={goldBtn}
+>
+Download ZIP {batch} ({(batch-1)*100} - {batch*100})
 </a>
+)
+
+})}
 
 <button onClick={()=>editEvent(e)} style={btnStyle}>
 Bewerken
