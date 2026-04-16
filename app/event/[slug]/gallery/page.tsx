@@ -62,16 +62,27 @@ setUploads(data || [])
 }
 
 
-async function deletePhoto(id:string){
+// 🔥 FIXED DELETE (MET STORAGE)
+async function deletePhoto(upload:any){
 
 if(!confirm("Foto verwijderen?")) return
 
+// 🔥 path uit URL halen
+const path = upload.file_url.split("/uploads/")[1]
+
+if(path){
+await supabase.storage
+.from("uploads")
+.remove([path])
+}
+
+// 🔥 daarna database
 await supabase
 .from("uploads")
 .delete()
-.eq("id",id)
+.eq("id",upload.id)
 
-setUploads(uploads.filter(u=>u.id!==id))
+setUploads(uploads.filter(u=>u.id!==upload.id))
 setViewer(null)
 
 }
@@ -211,7 +222,7 @@ alignItems:"center"
 {uploads[viewer].uploader_id === uploaderId && (
 
 <button
-onClick={()=>deletePhoto(uploads[viewer].id)}
+onClick={()=>deletePhoto(uploads[viewer])}
 style={{
 background:"rgba(255,255,255,0.9)",
 border:"none",
