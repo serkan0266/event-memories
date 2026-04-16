@@ -18,6 +18,7 @@ const [uploading,setUploading] = useState(false)
 const [progress,setProgress] = useState(0)
 const [count,setCount] = useState(0)
 const [uploaderId,setUploaderId] = useState("")
+const [imgLoaded,setImgLoaded] = useState(false) // 🔥 nieuw
 
 useEffect(()=>{
 
@@ -43,6 +44,12 @@ const {data} = await supabase
 .single()
 
 setEvent(data)
+
+// 🔥 preload header image
+if(data?.header_image){
+const img = new Image()
+img.src = `${data.header_image}?width=1200&quality=70`
+}
 
 }
 
@@ -86,7 +93,7 @@ const {data:url} = supabase.storage
 .from("uploads")
 .getPublicUrl(path)
 
-// 🔥 OPTIMALISATIE
+// 🔥 geoptimaliseerde image opslaan
 const optimizedUrl = `${url.publicUrl}?width=1200&quality=70`
 
 await supabase.from("uploads").insert({
@@ -114,7 +121,7 @@ if(!event){
 return <div style={{padding:40}}>Loading...</div>
 }
 
-// 🔥 HEADER OPTIMALISATIE
+// 🔥 header url
 const headerUrl = event.header_image 
 ? `${event.header_image}?width=1200&quality=70` 
 : null
@@ -127,9 +134,17 @@ return(
 
 {headerUrl && (
 <img 
-src={headerUrl} 
+src={headerUrl}
 loading="lazy"
-style={{width:"100%",borderRadius:16,marginBottom:25}}
+onLoad={()=>setImgLoaded(true)}
+style={{
+width:"100%",
+borderRadius:16,
+marginBottom:25,
+opacity: imgLoaded ? 1 : 0,
+transition:"opacity 0.4s ease",
+background:"#f3f3f3"
+}}
 />
 )}
 
@@ -176,10 +191,14 @@ textAlign:"center"
 <img
 src={headerUrl}
 loading="lazy"
+onLoad={()=>setImgLoaded(true)}
 style={{
 width:"100%",
 borderRadius:16,
-marginBottom:25
+marginBottom:25,
+opacity: imgLoaded ? 1 : 0,
+transition:"opacity 0.4s ease",
+background:"#f3f3f3"
 }}
 />
 
