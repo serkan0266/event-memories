@@ -53,7 +53,13 @@ margin:"auto",
 padding:20,
 textAlign:"center"
 }}>
-
+<img
+src="https://sharememories.nl/wp-content/uploads/2026/04/Untitled_design-removebg-preview.png"
+style={{
+width:140,
+marginBottom:20
+}}
+/>
 <h1 style={{fontSize:32}}>
 Download alle herinneringen 📸
 </h1>
