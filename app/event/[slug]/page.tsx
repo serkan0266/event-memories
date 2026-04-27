@@ -55,7 +55,6 @@ const files = e.target.files as FileList
 
 if(!files || !event) return
 
-// 🔥 LIMIET 100
 if(files.length > 100){
 alert("Maximaal 100 afbeeldingen tegelijk uploaden")
 return
@@ -228,7 +227,29 @@ style={{display:"none"}}
 Maximaal 50 afbeeldingen tegelijk
 </p>
 
-{/* 🔥 PREMIUM UPLOAD UI */}
+{/* 🎥 VIDEO BUTTON TERUG */}
+<button
+onClick={()=>window.open("https://www.dropbox.com/request/2qE262FJbK3WfdjhAvM1")}
+style={{
+width:"100%",
+padding:"18px",
+border:"2px solid #ddd",
+borderRadius:12,
+background:"#fff",
+cursor:"pointer",
+display:"flex",
+alignItems:"center",
+justifyContent:"center",
+gap:10,
+fontSize:18,
+marginTop:10
+}}
+>
+<span style={{fontSize:22}}>🎥</span>
+Video toevoegen
+</button>
+
+{/* 🔥 UPLOAD UI */}
 {uploading && (
 
 <div style={uploadBox}>
@@ -257,7 +278,7 @@ Laat deze pagina open tot upload is voltooid
 {uploadDone && (
 
 <div style={successBox}>
-<p>✅ Upload voltooid</p>
+<p>✅ Upload voltooid </p>
 <p>Je foto's zijn succesvol toegevoegd</p>
 </div>
 
@@ -296,7 +317,7 @@ Powered by ShareMemories
 
 }
 
-/* ✅ TYPESCRIPT SAFE STYLES */
+/* ✅ STYLES */
 
 const uploadBox:CSSProperties = {
 background:"#fff",
