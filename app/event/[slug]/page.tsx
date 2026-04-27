@@ -3,6 +3,7 @@
 import { useEffect,useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useParams,useRouter } from "next/navigation"
+import type { CSSProperties } from "react"
 
 export default function EventPage(){
 
@@ -133,10 +134,7 @@ return(
 <div style={{maxWidth:650,margin:"auto",padding:20,textAlign:"center"}}>
 
 {headerUrl && (
-<img 
-src={headerUrl}
-style={{width:"100%",borderRadius:16,marginBottom:25}}
-/>
+<img src={headerUrl} style={{width:"100%",borderRadius:16,marginBottom:25}}/>
 )}
 
 <h1 style={{fontFamily:"cursive",fontSize:46}}>
@@ -170,18 +168,10 @@ Galerij bekijken
 
 return(
 
-<div style={{
-maxWidth:650,
-margin:"auto",
-padding:20,
-textAlign:"center"
-}}>
+<div style={{maxWidth:650,margin:"auto",padding:20,textAlign:"center"}}>
 
 {headerUrl && (
-<img
-src={headerUrl}
-style={{width:"100%",borderRadius:16,marginBottom:25}}
-/>
+<img src={headerUrl} style={{width:"100%",borderRadius:16,marginBottom:25}}/>
 )}
 
 <h1 style={{fontFamily:"cursive",fontSize:46}}>
@@ -267,7 +257,7 @@ Laat deze pagina open tot upload is voltooid
 {uploadDone && (
 
 <div style={successBox}>
-<p>Upload voltooid ✅</p>
+<p>✅ Upload voltooid</p>
 <p>Je foto's zijn succesvol toegevoegd</p>
 </div>
 
@@ -306,9 +296,9 @@ Powered by ShareMemories
 
 }
 
-/* 🔥 STYLES */
+/* ✅ TYPESCRIPT SAFE STYLES */
 
-const uploadBox = {
+const uploadBox:CSSProperties = {
 background:"#fff",
 padding:20,
 borderRadius:12,
@@ -316,7 +306,7 @@ boxShadow:"0 3px 10px rgba(0,0,0,0.05)",
 marginTop:20
 }
 
-const progressBar = {
+const progressBar:CSSProperties = {
 width:"100%",
 height:10,
 background:"#eee",
@@ -325,13 +315,13 @@ overflow:"hidden",
 marginTop:10
 }
 
-const progressFill = {
+const progressFill:CSSProperties = {
 height:"100%",
 background:"#d4a24c",
 transition:"0.4s ease"
 }
 
-const successBox = {
+const successBox:CSSProperties = {
 marginTop:20,
 background:"#fff",
 padding:20,
