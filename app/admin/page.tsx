@@ -81,16 +81,12 @@ let videos=0
 let guests=new Set()
 
 uploads?.forEach((u:any)=>{
-
 if(u.type==="image") photos++
 if(u.type==="video") videos++
 if(u.name) guests.add(u.name)
-
 })
 
-// 🔥 SAFE STORAGE FIX
 let storageBytes = 0
-
 uploads?.forEach((file:any)=>{
 if(file.file_size){
 storageBytes += Number(file.file_size)
@@ -241,29 +237,49 @@ loadEvents()
 }
 
 
+// 🔥 FIXED HEADER UPLOAD
 async function uploadHeader(e:any,eventId:string){
 
-const file=e.target.files[0]
+const file = e.target.files?.[0]
 if(!file) return
 
-const path=`headers/${Date.now()}-${file.name}`
+try{
 
-const {error}=await supabase.storage.from("uploads").upload(path,file)
+const fileExt = file.name.split(".").pop()
+const fileName = `header-${Date.now()}.${fileExt}`
+const filePath = `headers/${fileName}`
+
+const { error } = await supabase.storage
+.from("uploads")
+.upload(filePath, file, {
+cacheControl: "3600",
+upsert: true,
+contentType: file.type
+})
 
 if(error){
+console.error(error)
 alert("Upload fout")
 return
 }
 
-const {data:url}=supabase.storage.from("uploads").getPublicUrl(path)
+const { data } = supabase.storage
+.from("uploads")
+.getPublicUrl(filePath)
 
 await supabase
 .from("events")
-.update({header_image:url.publicUrl})
-.eq("id",eventId)
+.update({ header_image: data.publicUrl })
+.eq("id", eventId)
 
 alert("Header geupload")
+
 loadEvents()
+
+}catch(err){
+console.error(err)
+alert("Iets ging fout")
+}
 
 }
 
@@ -383,6 +399,20 @@ return(
 
 <QRCode value={url} size={120}/>
 
+{/* ✅ HEADER PREVIEW */}
+{e.header_image && (
+<img
+src={e.header_image}
+style={{
+width:"100%",
+height:120,
+objectFit:"cover",
+borderRadius:8,
+marginTop:10
+}}
+/>
+)}
+
 <input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
 
 <a href={url} target="_blank" style={btnStyle}>Open Event</a>
@@ -410,6 +440,57 @@ Verwijderen
 })}
 
 </div>
+
+
+{/* ✅ UPLOADS VIEW */}
+{viewEvent && (
+
+<div style={{marginTop:40,...cardStyle}}>
+
+<h2>Uploads</h2>
+
+<div style={{
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,120px)",
+gap:10
+}}>
+
+{uploads.map((u)=>{
+
+const isImage = u.type === "image"
+
+return(
+
+<div key={u.id}>
+
+{isImage ? (
+<img
+src={u.file_url}
+style={{width:"100%",borderRadius:8}}
+/>
+) : (
+<video
+src={u.file_url}
+style={{width:"100%",borderRadius:8}}
+controls
+/>
+)}
+
+<button onClick={()=>deleteUpload(u)} style={{width:"100%",marginTop:5}}>
+Delete
+</button>
+
+</div>
+
+)
+
+})}
+
+</div>
+
+</div>
+
+)}
 
 
 {editing && (
