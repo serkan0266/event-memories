@@ -271,7 +271,7 @@ fontSize:13,
 color:"#666",
 marginTop:-10
 }}>
-Maximaal 20 afbeeldingen tegelijk
+Maximaal 50 afbeeldingen tegelijk
 </p>
 
 <button
