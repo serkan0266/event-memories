@@ -19,9 +19,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Memories | Showverhuur",
-  description: "Upload foto’s en video’s van deze speciale dag",
+export const metadata = {
+  title: "ShareMemories",
+  description: "Deel en verzamel alle herinneringen van jouw event"
 };
 
 export default function RootLayout({
