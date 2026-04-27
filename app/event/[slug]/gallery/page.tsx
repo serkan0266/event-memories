@@ -13,6 +13,7 @@ const slug = params.slug as string
 const [uploads,setUploads] = useState<any[]>([])
 const [viewer,setViewer] = useState<number | null>(null)
 const [uploaderId,setUploaderId] = useState("")
+const [isDesktop,setIsDesktop] = useState(false)
 
 const touchStart = useRef(0)
 
@@ -26,6 +27,7 @@ localStorage.setItem("uploaderId",id)
 }
 
 setUploaderId(id)
+setIsDesktop(window.innerWidth > 768)
 load()
 
 },[])
@@ -34,21 +36,22 @@ useEffect(()=>{
 document.body.style.overflow = viewer!==null ? "hidden" : "auto"
 },[viewer])
 
-// 🔥 KEYBOARD NAV
+// 🔥 keyboard
 useEffect(()=>{
+
 function handleKey(e:any){
 
 if(viewer===null) return
 
-if(e.key === "ArrowRight"){
+if(e.key==="ArrowRight"){
 setViewer(v=>v!==null && v<uploads.length-1 ? v+1 : v)
 }
 
-if(e.key === "ArrowLeft"){
+if(e.key==="ArrowLeft"){
 setViewer(v=>v!==null && v>0 ? v-1 : v)
 }
 
-if(e.key === "Escape"){
+if(e.key==="Escape"){
 setViewer(null)
 }
 
@@ -77,6 +80,7 @@ setUploads(data || [])
 
 }
 
+// 🔥 delete
 async function deletePhoto(upload:any){
 
 if(!confirm("Foto verwijderen?")) return
@@ -94,7 +98,7 @@ setViewer(null)
 
 }
 
-// 🔥 MOBILE SWIPE
+// 🔥 swipe
 function handleTouchStart(e:any){
 touchStart.current = e.touches[0].clientX
 }
@@ -102,13 +106,12 @@ touchStart.current = e.touches[0].clientX
 function handleTouchEnd(e:any){
 
 const diff = e.changedTouches[0].clientX - touchStart.current
-const threshold = 60
 
-if(diff > threshold){
+if(diff > 60){
 setViewer(v=>v!==null && v>0 ? v-1 : v)
 }
 
-if(diff < -threshold){
+if(diff < -60){
 setViewer(v=>v!==null && v<uploads.length-1 ? v+1 : v)
 }
 
@@ -116,18 +119,20 @@ setViewer(v=>v!==null && v<uploads.length-1 ? v+1 : v)
 
 return(
 
-<div style={{padding:15,maxWidth:1400,margin:"auto"}}>
+<div style={{padding:15,maxWidth:1400,margin:"auto",paddingTop:10}}>
 
 <button onClick={()=>router.push(`/event/${slug}`)}>
 ← Terug
 </button>
 
-<h2 style={{textAlign:"center",marginBottom:20}}>
-Galerij (gedeeld door gasten)
+{/* HEADER */}
+<div style={{textAlign:"center",marginBottom:35}}>
+<h2 style={{fontSize:32,fontWeight:600,letterSpacing:"0.5px"}}>
+Galerij
 </h2>
+</div>
 
-
-{/* 🔥 MASONRY */}
+{/* GRID */}
 <div style={{
 columnCount: window.innerWidth < 600 ? 2 : 3,
 columnGap:"12px"
@@ -177,8 +182,7 @@ fontSize:13
 
 </div>
 
-
-{/* 🔥 FULLSCREEN */}
+{/* FULLSCREEN */}
 {viewer!==null && (
 
 <div
@@ -200,7 +204,7 @@ paddingBottom:"env(safe-area-inset-bottom)"
 }}
 >
 
-{/* CLOSE + DELETE */}
+{/* TOP BUTTONS */}
 <div style={{
 position:"absolute",
 top:20,
@@ -221,15 +225,13 @@ gap:10
 
 </div>
 
-
-{/* 🔥 DESKTOP ARROWS */}
-{typeof window !== "undefined" && window.innerWidth > 768 && (
+{/* DESKTOP ARROWS */}
+{isDesktop && (
 <>
 <div onClick={()=>setViewer(v=>v!==null && v>0 ? v-1 : v)} style={arrowLeft}>‹</div>
 <div onClick={()=>setViewer(v=>v!==null && v<uploads.length-1 ? v+1 : v)} style={arrowRight}>›</div>
 </>
 )}
-
 
 {/* IMAGE */}
 <img
@@ -240,7 +242,6 @@ maxHeight:"55vh",
 borderRadius:12
 }}
 />
-
 
 {/* TEXT */}
 <div style={{
@@ -284,7 +285,7 @@ cursor:"pointer"
 }
 
 const arrowLeft = {
-position:"absolute" as const,
+position:"absolute",
 left:20,
 top:"50%",
 transform:"translateY(-50%)",
@@ -294,7 +295,7 @@ cursor:"pointer"
 }
 
 const arrowRight = {
-position:"absolute" as const,
+position:"absolute",
 right:20,
 top:"50%",
 transform:"translateY(-50%)",
