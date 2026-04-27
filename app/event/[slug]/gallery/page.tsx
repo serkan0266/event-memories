@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect,useState,useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
-import { useParams,useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 
 export default function Gallery(){
 
@@ -36,7 +36,7 @@ useEffect(()=>{
 document.body.style.overflow = viewer!==null ? "hidden" : "auto"
 },[viewer])
 
-// 🔥 keyboard
+// 🔥 KEYBOARD
 useEffect(()=>{
 
 function handleKey(e:any){
@@ -80,7 +80,7 @@ setUploads(data || [])
 
 }
 
-// 🔥 delete
+// 🔥 DELETE
 async function deletePhoto(upload:any){
 
 if(!confirm("Foto verwijderen?")) return
@@ -98,7 +98,7 @@ setViewer(null)
 
 }
 
-// 🔥 swipe
+// 🔥 SWIPE
 function handleTouchStart(e:any){
 touchStart.current = e.touches[0].clientX
 }
@@ -125,16 +125,16 @@ return(
 ← Terug
 </button>
 
-{/* HEADER */}
+{/* 🔥 HEADER */}
 <div style={{textAlign:"center",marginBottom:35}}>
 <h2 style={{fontSize:32,fontWeight:600,letterSpacing:"0.5px"}}>
 Galerij
 </h2>
 </div>
 
-{/* GRID */}
+{/* 🔥 GRID */}
 <div style={{
-columnCount: window.innerWidth < 600 ? 2 : 3,
+columnCount: typeof window !== "undefined" && window.innerWidth < 600 ? 2 : 3,
 columnGap:"12px"
 }}>
 
@@ -182,7 +182,7 @@ fontSize:13
 
 </div>
 
-{/* FULLSCREEN */}
+{/* 🔥 FULLSCREEN */}
 {viewer!==null && (
 
 <div
@@ -274,6 +274,8 @@ padding:"0 20px 40px"
 
 }
 
+/* 🔥 STYLES */
+
 const iconBtn = {
 background:"rgba(255,255,255,0.9)",
 border:"none",
@@ -285,7 +287,7 @@ cursor:"pointer"
 }
 
 const arrowLeft = {
-position:"absolute",
+position:"absolute" as const,
 left:20,
 top:"50%",
 transform:"translateY(-50%)",
@@ -295,7 +297,7 @@ cursor:"pointer"
 }
 
 const arrowRight = {
-position:"absolute",
+position:"absolute" as const,
 right:20,
 top:"50%",
 transform:"translateY(-50%)",
