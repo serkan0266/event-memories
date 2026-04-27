@@ -36,7 +36,7 @@ useEffect(()=>{
 document.body.style.overflow = viewer!==null ? "hidden" : "auto"
 },[viewer])
 
-// 🔥 KEYBOARD
+// KEYBOARD
 useEffect(()=>{
 
 function handleKey(e:any){
@@ -80,7 +80,7 @@ setUploads(data || [])
 
 }
 
-// 🔥 DELETE
+// DELETE
 async function deletePhoto(upload:any){
 
 if(!confirm("Foto verwijderen?")) return
@@ -98,7 +98,7 @@ setViewer(null)
 
 }
 
-// 🔥 SWIPE
+// SWIPE
 function handleTouchStart(e:any){
 touchStart.current = e.touches[0].clientX
 }
@@ -119,22 +119,22 @@ setViewer(v=>v!==null && v<uploads.length-1 ? v+1 : v)
 
 return(
 
-<div style={{padding:15,maxWidth:1400,margin:"auto",paddingTop:10}}>
+<div style={{padding:15,maxWidth:1400,margin:"auto"}}>
 
 <button onClick={()=>router.push(`/event/${slug}`)}>
 ← Terug
 </button>
 
-{/* 🔥 HEADER */}
-<div style={{textAlign:"center",marginBottom:35}}>
-<h2 style={{fontSize:32,fontWeight:600,letterSpacing:"0.5px"}}>
+{/* HEADER */}
+<div style={{textAlign:"center",marginBottom:30}}>
+<h2 style={{fontSize:34,fontWeight:600}}>
 Galerij
 </h2>
 </div>
 
-{/* 🔥 GRID */}
+{/* 🔥 MASONRY FIX */}
 <div style={{
-columnCount: typeof window !== "undefined" && window.innerWidth < 600 ? 2 : 3,
+columnWidth:"160px",
 columnGap:"12px"
 }}>
 
@@ -144,8 +144,8 @@ columnGap:"12px"
 key={u.id}
 onClick={()=>setViewer(i)}
 style={{
-marginBottom:12,
 breakInside:"avoid",
+marginBottom:12,
 cursor:"pointer",
 position:"relative",
 borderRadius:12,
@@ -153,7 +153,13 @@ overflow:"hidden"
 }}
 >
 
-<img src={u.file_url} style={{width:"100%"}}/>
+<img 
+src={u.file_url} 
+style={{
+width:"100%",
+display:"block"
+}}
+/>
 
 <div style={{
 position:"absolute",
@@ -182,7 +188,7 @@ fontSize:13
 
 </div>
 
-{/* 🔥 FULLSCREEN */}
+{/* FULLSCREEN */}
 {viewer!==null && (
 
 <div
@@ -199,8 +205,7 @@ display:"flex",
 flexDirection:"column",
 justifyContent:"center",
 alignItems:"center",
-zIndex:999999,
-paddingBottom:"env(safe-area-inset-bottom)"
+zIndex:999999
 }}
 >
 
@@ -233,23 +238,21 @@ gap:10
 </>
 )}
 
-{/* IMAGE */}
 <img
 src={uploads[viewer].file_url}
 style={{
 maxWidth:"95%",
-maxHeight:"55vh",
+maxHeight:"60vh",
 borderRadius:12
 }}
 />
 
-{/* TEXT */}
 <div style={{
 color:"#fff",
 marginTop:20,
 textAlign:"center",
 maxWidth:600,
-padding:"0 20px 40px"
+padding:"0 20px"
 }}>
 
 <b style={{fontSize:18}}>
@@ -257,7 +260,7 @@ padding:"0 20px 40px"
 </b>
 
 {uploads[viewer].message && (
-<p style={{marginTop:8,lineHeight:1.5}}>
+<p style={{marginTop:8}}>
 {uploads[viewer].message}
 </p>
 )}
@@ -274,7 +277,7 @@ padding:"0 20px 40px"
 
 }
 
-/* 🔥 STYLES */
+/* STYLES */
 
 const iconBtn = {
 background:"rgba(255,255,255,0.9)",
