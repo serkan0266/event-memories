@@ -53,7 +53,6 @@ setUploads(data || [])
 
 }
 
-
 // DELETE
 async function deletePhoto(upload:any){
 
@@ -72,12 +71,11 @@ setViewer(null)
 
 }
 
-
 return(
 
 <div style={{
-padding:20,
-maxWidth:1100,
+padding:15,
+maxWidth:1400,
 margin:"auto"
 }}>
 
@@ -85,19 +83,15 @@ margin:"auto"
 ← Terug
 </button>
 
-<h2 style={{
-textAlign:"center",
-marginBottom:25
-}}>
+<h2 style={{textAlign:"center",marginBottom:20}}>
 Galerij (gedeeld door gasten)
 </h2>
 
 
-{/* 🔥 PREMIUM GRID */}
+{/* 🔥 MASONRY */}
 <div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",
-gap:15
+columnCount: window.innerWidth < 600 ? 2 : 3,
+columnGap:"12px"
 }}>
 
 {uploads.map((u,i)=>(
@@ -106,8 +100,10 @@ gap:15
 key={u.id}
 onClick={()=>setViewer(i)}
 style={{
-position:"relative",
+marginBottom:12,
+breakInside:"avoid",
 cursor:"pointer",
+position:"relative",
 borderRadius:12,
 overflow:"hidden"
 }}
@@ -117,9 +113,8 @@ overflow:"hidden"
 src={u.file_url}
 style={{
 width:"100%",
-height:240,
-objectFit:"cover",
-transition:"0.3s"
+borderRadius:12,
+display:"block"
 }}
 />
 
@@ -152,7 +147,7 @@ fontSize:13
 </div>
 
 
-{/* 🔥 FULLSCREEN VIEWER */}
+{/* 🔥 FULLSCREEN */}
 {viewer!==null && (
 
 <div
@@ -176,16 +171,16 @@ top:0,
 left:0,
 width:"100vw",
 height:"100vh",
-background:"rgba(0,0,0,0.96)",
+background:"#000",
 display:"flex",
 flexDirection:"column",
 alignItems:"center",
 justifyContent:"center",
-zIndex:1000
+zIndex:9999
 }}
 >
 
-{/* TOP BAR */}
+{/* TOP BUTTONS */}
 <div style={{
 position:"absolute",
 top:20,
@@ -195,25 +190,18 @@ gap:10
 }}>
 
 {uploads[viewer].uploader_id === uploaderId && (
-<button
-onClick={()=>deletePhoto(uploads[viewer])}
-style={iconBtn}
->
+<button onClick={()=>deletePhoto(uploads[viewer])} style={iconBtn}>
 🗑️
 </button>
 )}
 
-<button
-onClick={()=>setViewer(null)}
-style={iconBtn}
->
+<button onClick={()=>setViewer(null)} style={iconBtn}>
 ✕
 </button>
 
 </div>
 
 
-{/* IMAGE */}
 <img
 src={uploads[viewer].file_url}
 style={{
@@ -223,8 +211,6 @@ borderRadius:12
 }}
 />
 
-
-{/* TEXT */}
 <div style={{
 color:"#fff",
 marginTop:20,
@@ -233,12 +219,10 @@ maxWidth:500,
 padding:"0 20px"
 }}>
 
-<b style={{fontSize:16}}>
-{uploads[viewer].name}
-</b>
+<b>{uploads[viewer].name}</b>
 
 {uploads[viewer].message && (
-<p style={{opacity:0.85,marginTop:5}}>
+<p style={{opacity:0.8}}>
 {uploads[viewer].message}
 </p>
 )}
@@ -254,8 +238,6 @@ padding:"0 20px"
 )
 
 }
-
-/* 🔥 STYLES */
 
 const iconBtn = {
 background:"rgba(255,255,255,0.9)",
