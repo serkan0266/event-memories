@@ -31,17 +31,9 @@ load()
 
 },[])
 
-
 useEffect(()=>{
-
-if(viewer!==null){
-document.body.style.overflow="hidden"
-}else{
-document.body.style.overflow="auto"
-}
-
+document.body.style.overflow = viewer!==null ? "hidden" : "auto"
 },[viewer])
-
 
 async function load(){
 
@@ -62,25 +54,18 @@ setUploads(data || [])
 }
 
 
-// 🔥 FIXED DELETE (MET STORAGE)
+// DELETE
 async function deletePhoto(upload:any){
 
 if(!confirm("Foto verwijderen?")) return
 
-// 🔥 path uit URL halen
 const path = upload.file_url.split("/uploads/")[1]
 
 if(path){
-await supabase.storage
-.from("uploads")
-.remove([path])
+await supabase.storage.from("uploads").remove([path])
 }
 
-// 🔥 daarna database
-await supabase
-.from("uploads")
-.delete()
-.eq("id",upload.id)
+await supabase.from("uploads").delete().eq("id",upload.id)
 
 setUploads(uploads.filter(u=>u.id!==upload.id))
 setViewer(null)
@@ -92,42 +77,39 @@ return(
 
 <div style={{
 padding:20,
-maxWidth:900,
+maxWidth:1100,
 margin:"auto"
 }}>
 
-<button
-onClick={()=>router.push(`/event/${slug}`)}
-style={{marginBottom:10}}
->
+<button onClick={()=>router.push(`/event/${slug}`)}>
 ← Terug
 </button>
 
 <h2 style={{
 textAlign:"center",
-fontWeight:"bold",
-marginBottom:20
+marginBottom:25
 }}>
 Galerij (gedeeld door gasten)
 </h2>
 
 
+{/* 🔥 PREMIUM GRID */}
 <div style={{
 display:"grid",
-gridTemplateColumns:"repeat(3,1fr)",
-gap:8
+gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",
+gap:15
 }}>
 
-{uploads.map((u,i)=>{
-
-return(
+{uploads.map((u,i)=>(
 
 <div
 key={u.id}
 onClick={()=>setViewer(i)}
 style={{
 position:"relative",
-cursor:"pointer"
+cursor:"pointer",
+borderRadius:12,
+overflow:"hidden"
 }}
 >
 
@@ -135,27 +117,28 @@ cursor:"pointer"
 src={u.file_url}
 style={{
 width:"100%",
-aspectRatio:"1/1",
+height:240,
 objectFit:"cover",
-borderRadius:8
+transition:"0.3s"
 }}
 />
 
+{/* overlay */}
 <div style={{
 position:"absolute",
 bottom:0,
 left:0,
 right:0,
-padding:6,
-background:"linear-gradient(transparent,rgba(0,0,0,0.7))",
+padding:10,
+background:"linear-gradient(to top, rgba(0,0,0,0.75), transparent)",
 color:"#fff",
-fontSize:12
+fontSize:13
 }}>
 
 <b>{u.name}</b>
 
 {u.message && (
-<div style={{fontSize:11}}>
+<div style={{fontSize:12,opacity:0.9}}>
 {u.message}
 </div>
 )}
@@ -164,13 +147,12 @@ fontSize:12
 
 </div>
 
-)
-
-})}
+))}
 
 </div>
 
 
+{/* 🔥 FULLSCREEN VIEWER */}
 {viewer!==null && (
 
 <div
@@ -194,61 +176,36 @@ top:0,
 left:0,
 width:"100vw",
 height:"100vh",
-background:"rgba(0,0,0,0.95)",
+background:"rgba(0,0,0,0.96)",
 display:"flex",
 flexDirection:"column",
 alignItems:"center",
-justifyContent:"flex-start",
-paddingTop:80,
-overflowY:"auto",
-overscrollBehavior:"contain",
-WebkitOverflowScrolling:"touch",
+justifyContent:"center",
 zIndex:1000
 }}
 >
 
-
-{/* ICONS */}
-
+{/* TOP BAR */}
 <div style={{
 position:"absolute",
 top:20,
 right:20,
 display:"flex",
-gap:12,
-alignItems:"center"
+gap:10
 }}>
 
 {uploads[viewer].uploader_id === uploaderId && (
-
 <button
 onClick={()=>deletePhoto(uploads[viewer])}
-style={{
-background:"rgba(255,255,255,0.9)",
-border:"none",
-borderRadius:"50%",
-width:40,
-height:40,
-fontSize:18,
-cursor:"pointer"
-}}
+style={iconBtn}
 >
 🗑️
 </button>
-
 )}
 
 <button
 onClick={()=>setViewer(null)}
-style={{
-background:"rgba(255,255,255,0.9)",
-border:"none",
-borderRadius:"50%",
-width:40,
-height:40,
-fontSize:18,
-cursor:"pointer"
-}}
+style={iconBtn}
 >
 ✕
 </button>
@@ -256,28 +213,34 @@ cursor:"pointer"
 </div>
 
 
+{/* IMAGE */}
 <img
 src={uploads[viewer].file_url}
 style={{
 maxWidth:"90%",
-maxHeight:"60vh",
-borderRadius:10
+maxHeight:"70vh",
+borderRadius:12
 }}
 />
 
 
+{/* TEXT */}
 <div style={{
 color:"#fff",
-marginTop:15,
+marginTop:20,
 textAlign:"center",
 maxWidth:500,
-paddingBottom:40
+padding:"0 20px"
 }}>
 
-<b>{uploads[viewer].name}</b>
+<b style={{fontSize:16}}>
+{uploads[viewer].name}
+</b>
 
 {uploads[viewer].message && (
-<p>{uploads[viewer].message}</p>
+<p style={{opacity:0.85,marginTop:5}}>
+{uploads[viewer].message}
+</p>
 )}
 
 </div>
@@ -290,4 +253,16 @@ paddingBottom:40
 
 )
 
+}
+
+/* 🔥 STYLES */
+
+const iconBtn = {
+background:"rgba(255,255,255,0.9)",
+border:"none",
+borderRadius:"50%",
+width:40,
+height:40,
+fontSize:18,
+cursor:"pointer"
 }
