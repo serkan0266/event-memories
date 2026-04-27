@@ -26,7 +26,6 @@ localStorage.setItem("uploaderId",id)
 }
 
 setUploaderId(id)
-
 load()
 
 },[])
@@ -34,6 +33,31 @@ load()
 useEffect(()=>{
 document.body.style.overflow = viewer!==null ? "hidden" : "auto"
 },[viewer])
+
+// 🔥 KEYBOARD NAV
+useEffect(()=>{
+function handleKey(e:any){
+
+if(viewer===null) return
+
+if(e.key === "ArrowRight"){
+setViewer(v=>v!==null && v<uploads.length-1 ? v+1 : v)
+}
+
+if(e.key === "ArrowLeft"){
+setViewer(v=>v!==null && v>0 ? v-1 : v)
+}
+
+if(e.key === "Escape"){
+setViewer(null)
+}
+
+}
+
+window.addEventListener("keydown",handleKey)
+return ()=>window.removeEventListener("keydown",handleKey)
+
+},[viewer,uploads])
 
 async function load(){
 
@@ -70,9 +94,7 @@ setViewer(null)
 
 }
 
-
-/* 🔥 SIMPLE SWIPE (GEEN ANIMATIE) */
-
+// 🔥 MOBILE SWIPE
 function handleTouchStart(e:any){
 touchStart.current = e.touches[0].clientX
 }
@@ -92,7 +114,6 @@ setViewer(v=>v!==null && v<uploads.length-1 ? v+1 : v)
 
 }
 
-
 return(
 
 <div style={{padding:15,maxWidth:1400,margin:"auto"}}>
@@ -102,11 +123,11 @@ return(
 </button>
 
 <h2 style={{textAlign:"center",marginBottom:20}}>
-Galerij
+Galerij (gedeeld door gasten)
 </h2>
 
 
-{/* MASONRY */}
+{/* 🔥 MASONRY */}
 <div style={{
 columnCount: window.innerWidth < 600 ? 2 : 3,
 columnGap:"12px"
@@ -157,7 +178,7 @@ fontSize:13
 </div>
 
 
-{/* 🔥 FULLSCREEN (ECHT CLEAN) */}
+{/* 🔥 FULLSCREEN */}
 {viewer!==null && (
 
 <div
@@ -168,17 +189,18 @@ position:"fixed",
 top:0,
 left:0,
 width:"100vw",
-height:"100vh",
+height:"100dvh",
 background:"#000",
 display:"flex",
 flexDirection:"column",
 justifyContent:"center",
 alignItems:"center",
-zIndex:999999
+zIndex:999999,
+paddingBottom:"env(safe-area-inset-bottom)"
 }}
 >
 
-{/* TOP BUTTONS */}
+{/* CLOSE + DELETE */}
 <div style={{
 position:"absolute",
 top:20,
@@ -200,12 +222,21 @@ gap:10
 </div>
 
 
+{/* 🔥 DESKTOP ARROWS */}
+{typeof window !== "undefined" && window.innerWidth > 768 && (
+<>
+<div onClick={()=>setViewer(v=>v!==null && v>0 ? v-1 : v)} style={arrowLeft}>‹</div>
+<div onClick={()=>setViewer(v=>v!==null && v<uploads.length-1 ? v+1 : v)} style={arrowRight}>›</div>
+</>
+)}
+
+
 {/* IMAGE */}
 <img
 src={uploads[viewer].file_url}
 style={{
 maxWidth:"95%",
-maxHeight:"65vh",
+maxHeight:"55vh",
 borderRadius:12
 }}
 />
@@ -217,7 +248,7 @@ color:"#fff",
 marginTop:20,
 textAlign:"center",
 maxWidth:600,
-padding:"0 20px"
+padding:"0 20px 40px"
 }}>
 
 <b style={{fontSize:18}}>
@@ -249,5 +280,25 @@ borderRadius:"50%",
 width:42,
 height:42,
 fontSize:18,
+cursor:"pointer"
+}
+
+const arrowLeft = {
+position:"absolute" as const,
+left:20,
+top:"50%",
+transform:"translateY(-50%)",
+fontSize:40,
+color:"#fff",
+cursor:"pointer"
+}
+
+const arrowRight = {
+position:"absolute" as const,
+right:20,
+top:"50%",
+transform:"translateY(-50%)",
+fontSize:40,
+color:"#fff",
 cursor:"pointer"
 }
