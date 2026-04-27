@@ -13,10 +13,8 @@ const slug = params.slug as string
 const [uploads,setUploads] = useState<any[]>([])
 const [viewer,setViewer] = useState<number | null>(null)
 const [uploaderId,setUploaderId] = useState("")
-const [offset,setOffset] = useState(0)
 
 const touchStart = useRef(0)
-const dragging = useRef(false)
 
 useEffect(()=>{
 
@@ -28,6 +26,7 @@ localStorage.setItem("uploaderId",id)
 }
 
 setUploaderId(id)
+
 load()
 
 },[])
@@ -72,37 +71,27 @@ setViewer(null)
 }
 
 
-/* 🔥 SWIPE LOGIC */
+/* 🔥 SIMPLE SWIPE (GEEN ANIMATIE) */
 
 function handleTouchStart(e:any){
-dragging.current = true
 touchStart.current = e.touches[0].clientX
 }
 
-function handleTouchMove(e:any){
-if(!dragging.current) return
+function handleTouchEnd(e:any){
 
-const current = e.touches[0].clientX
-const diff = current - touchStart.current
+const diff = e.changedTouches[0].clientX - touchStart.current
+const threshold = 60
 
-setOffset(diff)
-}
-
-function handleTouchEnd(){
-
-dragging.current = false
-
-const threshold = 80
-
-if(offset > threshold){
+if(diff > threshold){
 setViewer(v=>v!==null && v>0 ? v-1 : v)
 }
-else if(offset < -threshold){
+
+if(diff < -threshold){
 setViewer(v=>v!==null && v<uploads.length-1 ? v+1 : v)
 }
 
-setOffset(0)
 }
+
 
 return(
 
@@ -113,7 +102,7 @@ return(
 </button>
 
 <h2 style={{textAlign:"center",marginBottom:20}}>
-Galerij (gedeeld door gasten)
+Galerij
 </h2>
 
 
@@ -168,12 +157,11 @@ fontSize:13
 </div>
 
 
-{/* FULLSCREEN */}
+{/* 🔥 FULLSCREEN (ECHT CLEAN) */}
 {viewer!==null && (
 
 <div
 onTouchStart={handleTouchStart}
-onTouchMove={handleTouchMove}
 onTouchEnd={handleTouchEnd}
 style={{
 position:"fixed",
@@ -184,18 +172,19 @@ height:"100vh",
 background:"#000",
 display:"flex",
 flexDirection:"column",
+justifyContent:"center",
+alignItems:"center",
 zIndex:999999
 }}
 >
 
-{/* TOP */}
+{/* TOP BUTTONS */}
 <div style={{
 position:"absolute",
 top:20,
 right:20,
 display:"flex",
-gap:10,
-zIndex:10
+gap:10
 }}>
 
 {uploads[viewer].uploader_id === uploaderId && (
@@ -211,40 +200,24 @@ zIndex:10
 </div>
 
 
-{/* SLIDER */}
-<div style={{
-flex:1,
-display:"flex",
-alignItems:"center",
-justifyContent:"center",
-overflow:"hidden"
-}}>
-
-<div style={{
-display:"flex",
-transform:`translateX(${offset}px)`,
-transition: dragging.current ? "none" : "transform 0.3s ease"
-}}>
-
+{/* IMAGE */}
 <img
 src={uploads[viewer].file_url}
 style={{
-maxWidth:"90vw",
+maxWidth:"95%",
 maxHeight:"65vh",
 borderRadius:12
 }}
 />
 
-</div>
-
-</div>
-
 
 {/* TEXT */}
 <div style={{
 color:"#fff",
+marginTop:20,
 textAlign:"center",
-padding:"20px"
+maxWidth:600,
+padding:"0 20px"
 }}>
 
 <b style={{fontSize:18}}>
@@ -252,7 +225,7 @@ padding:"20px"
 </b>
 
 {uploads[viewer].message && (
-<p style={{marginTop:8}}>
+<p style={{marginTop:8,lineHeight:1.5}}>
 {uploads[viewer].message}
 </p>
 )}
