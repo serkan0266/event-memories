@@ -17,6 +17,8 @@ const [message,setMessage] = useState("")
 const [uploading,setUploading] = useState(false)
 const [progress,setProgress] = useState(0)
 const [count,setCount] = useState(0)
+const [uploadedCount,setUploadedCount] = useState(0)
+const [uploadDone,setUploadDone] = useState(false)
 const [uploaderId,setUploaderId] = useState("")
 
 useEffect(()=>{
@@ -52,7 +54,14 @@ const files = e.target.files as FileList
 
 if(!files || !event) return
 
+// 🔥 LIMIET 100
+if(files.length > 100){
+alert("Maximaal 100 afbeeldingen tegelijk uploaden")
+return
+}
+
 setUploading(true)
+setUploadDone(false)
 setCount(files.length)
 
 let done = 0
@@ -66,17 +75,13 @@ setUploading(false)
 return
 }
 
-// 🔥 slug map
 const cleanSlug = event.slug.replace(/[^a-z0-9]/gi, "-").toLowerCase()
 
 for(const file of Array.from(files) as File[]){
 
 if(!file.type.startsWith("image")) continue
 
-// 🔥 veilige filename
 const cleanName = file.name.replace(/[^a-z0-9.]/gi, "-").toLowerCase()
-
-// 🔥 nette path
 const path = `${cleanSlug}/${Date.now()}-${cleanName}`
 
 const {error} = await supabase.storage
@@ -93,7 +98,6 @@ const {data:url} = supabase.storage
 .from("uploads")
 .getPublicUrl(path)
 
-// 🔥 NIEUW: file_size opslaan
 await supabase.from("uploads").insert({
 event_id:event.id,
 file_url:url.publicUrl,
@@ -102,17 +106,17 @@ name:name,
 message:message,
 uploader_id:uploaderId,
 user_id:userId,
-file_size: file.size // 🔥 BELANGRIJK
+file_size: file.size
 })
 
 done++
+setUploadedCount(done)
 setProgress(Math.round((done/files.length)*100))
+
 }
 
 setUploading(false)
-setProgress(0)
-
-alert("Upload voltooid")
+setUploadDone(true)
 
 }
 
@@ -131,8 +135,6 @@ return(
 {headerUrl && (
 <img 
 src={headerUrl}
-loading="eager"
-fetchPriority="high"
 style={{width:"100%",borderRadius:16,marginBottom:25}}
 />
 )}
@@ -176,32 +178,17 @@ textAlign:"center"
 }}>
 
 {headerUrl && (
-
 <img
 src={headerUrl}
-loading="eager"
-fetchPriority="high"
-style={{
-width:"100%",
-borderRadius:16,
-marginBottom:25
-}}
+style={{width:"100%",borderRadius:16,marginBottom:25}}
 />
-
 )}
 
-<h1 style={{
-fontFamily:"cursive",
-fontSize:46
-}}>
+<h1 style={{fontFamily:"cursive",fontSize:46}}>
 {event.name}
 </h1>
 
-<p style={{
-fontSize:18,
-marginTop:10,
-lineHeight:1.6
-}}>
+<p style={{fontSize:18,marginTop:10,lineHeight:1.6}}>
 Alle momenten van deze speciale dag komen hier samen ❤️
 </p>
 
@@ -211,33 +198,15 @@ Alle momenten van deze speciale dag komen hier samen ❤️
 placeholder="Naam"
 value={name}
 onChange={(e)=>setName(e.target.value)}
-style={{
-width:"100%",
-padding:14,
-borderRadius:10,
-border:"1px solid #ddd",
-marginBottom:10
-}}
+style={{width:"100%",padding:14,borderRadius:10,border:"1px solid #ddd",marginBottom:10}}
 />
 
 <textarea
 placeholder="Laat een bericht achter..."
 value={message}
 onChange={(e)=>setMessage(e.target.value)}
-style={{
-width:"100%",
-padding:14,
-borderRadius:10,
-border:"1px solid #ddd",
-marginBottom:20
-}}
+style={{width:"100%",padding:14,borderRadius:10,border:"1px solid #ddd",marginBottom:20}}
 />
-
-<div style={{
-display:"flex",
-flexDirection:"column",
-gap:15
-}}>
 
 <label style={{
 width:"100%",
@@ -253,7 +222,6 @@ fontSize:18
 }}>
 
 <span style={{fontSize:22}}>📷</span>
-
 Afbeeldingen toevoegen
 
 <input
@@ -266,49 +234,42 @@ style={{display:"none"}}
 
 </label>
 
-<p style={{
-fontSize:13,
-color:"#666",
-marginTop:-10
-}}>
+<p style={{fontSize:13,color:"#666",marginTop:5}}>
 Maximaal 50 afbeeldingen tegelijk
 </p>
 
-<button
-onClick={()=>window.open("https://www.dropbox.com/request/2qE262FJbK3WfdjhAvM1")}
-style={{
-width:"100%",
-padding:"18px",
-border:"2px solid #ddd",
-borderRadius:12,
-background:"#fff",
-cursor:"pointer",
-display:"flex",
-alignItems:"center",
-justifyContent:"center",
-gap:10,
-fontSize:18
-}}
->
+{/* 🔥 PREMIUM UPLOAD UI */}
+{uploading && (
 
-<span style={{fontSize:22}}>🎥</span>
+<div style={uploadBox}>
 
-Video toevoegen
+<p style={{fontWeight:600}}>
+Foto’s uploaden... ({progress}%)
+</p>
 
-</button>
+<p style={{fontSize:14,color:"#555"}}>
+{uploadedCount} van {count} foto's verwerkt
+</p>
+
+<p style={{fontSize:13,color:"#999"}}>
+Laat deze pagina open tot upload is voltooid
+</p>
+
+<div style={progressBar}>
+<div style={{...progressFill,width: progress + "%"}}/>
+</div>
 
 </div>
 
-{uploading && (
+)}
 
-<p style={{
-color:"red",
-marginTop:20,
-fontWeight:"bold"
-}}>
-Bezig met uploaden van {count} afbeeldingen ({progress}%)
-Klik deze pagina niet weg
-</p>
+{/* ✅ SUCCESS */}
+{uploadDone && (
+
+<div style={successBox}>
+<p>Upload voltooid ✅</p>
+<p>Je foto's zijn succesvol toegevoegd</p>
+</div>
 
 )}
 
@@ -329,18 +290,9 @@ fontSize:16
 Galerij bekijken
 </button>
 
-<div style={{
-marginTop:50,
-display:"flex",
-flexDirection:"column",
-alignItems:"center",
-gap:10
-}}>
+<div style={{marginTop:50,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
 
-<img
-src="https://sharememories.nl/wp-content/uploads/2026/04/Untitled_design-removebg-preview.png"
-style={{width:110}}
-/>
+<img src="https://sharememories.nl/wp-content/uploads/2026/04/Untitled_design-removebg-preview.png" style={{width:110}}/>
 
 <p style={{fontSize:14}}>
 Powered by ShareMemories
@@ -352,4 +304,38 @@ Powered by ShareMemories
 
 )
 
+}
+
+/* 🔥 STYLES */
+
+const uploadBox = {
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 3px 10px rgba(0,0,0,0.05)",
+marginTop:20
+}
+
+const progressBar = {
+width:"100%",
+height:10,
+background:"#eee",
+borderRadius:10,
+overflow:"hidden",
+marginTop:10
+}
+
+const progressFill = {
+height:"100%",
+background:"#d4a24c",
+transition:"0.4s ease"
+}
+
+const successBox = {
+marginTop:20,
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 3px 10px rgba(0,0,0,0.05)",
+textAlign:"center"
 }
