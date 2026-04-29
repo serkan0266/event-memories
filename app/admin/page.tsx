@@ -227,7 +227,7 @@ loadEvents()
 
 }
 
-// 🔥 FIXED HEADER UPLOAD (ALLEEN DIT IS AANGEPAST)
+// 🔥 FIXED HEADER UPLOAD
 async function uploadHeader(e:any,eventId:string){
 
 const file = e.target.files?.[0]
@@ -239,7 +239,7 @@ const fileExt = file.name.split(".").pop()
 const fileName = `header-${Date.now()}.${fileExt}`
 const filePath = `headers/${fileName}`
 
-console.log("Uploading:", filePath)
+console.log("UPLOAD START:", filePath)
 
 const { data, error } = await supabase.storage
 .from("uploads")
@@ -304,5 +304,288 @@ a.click()
 
 }
 
-  }
+}
+
+if(!loggedIn){
+
+return(
+
+<div style={loginStyle}>
+
+<h2>Memories Admin</h2>
+
+<input
+type="password"
+placeholder="Wachtwoord"
+value={password}
+onChange={(e)=>setPassword(e.target.value)}
+style={loginInput}
+/>
+
+<button onClick={login} style={goldBtnSmall}>
+Login
+</button>
+
+</div>
+
+)
+
+}
+
+return(
+
+<div style={containerStyle}>
+
+<h1>Memories Admin</h1>
+
+<div style={statsGrid}>
+<div style={statCard}><h3>Events</h3><b>{stats.events}</b></div>
+<div style={statCard}><h3>Foto's</h3><b>{stats.photos}</b></div>
+<div style={statCard}><h3>Video's</h3><b>{stats.videos}</b></div>
+<div style={statCard}><h3>Storage</h3><b>{stats.storage.toFixed(2)} MB</b></div>
+</div>
+
+<div style={cardStyle}>
+
+<h3>Nieuw event maken</h3>
+
+<div style={{display:"flex",gap:10}}>
+
+<input placeholder="Event naam" value={name} onChange={(e)=>setName(e.target.value)} style={inputStyle}/>
+<input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={inputStyle}/>
+
+<button onClick={createEvent} style={goldBtnSmall}>
+Maak event
+</button>
+
+</div>
+
+</div>
+
+<h2 style={{marginTop:40}}>Events</h2>
+
+<div style={eventGrid}>
+
+{events.map((e)=>{
+
+const url = `${BASE_URL}/event/${e.slug}`
+
+return(
+
+<div key={e.id} style={cardStyle}>
+
+<h3>{e.name}</h3>
+
+<select value={e.status} onChange={(ev)=>toggleEvent(e.id,ev.target.value)} style={btnStyle}>
+<option value="open">✅ Event open</option>
+<option value="closed">❌ Event gesloten</option>
+</select>
+
+<p>👥 {e.guests} gasten hebben geupload</p>
+<p>📸 {e.photos} foto's</p>
+<p>🎥 {e.videos} video's</p>
+<p>💾 {e.storage.toFixed(2)} MB</p>
+
+<QRCode value={url} size={120}/>
+
+{e.header_image && (
+<img
+src={e.header_image}
+style={{
+width:"100%",
+height:120,
+objectFit:"cover",
+borderRadius:8,
+marginTop:10
+}}
+/>
+)}
+
+<input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
+
+<a href={url} target="_blank" style={btnStyle}>Open Event</a>
+
+<button onClick={()=>viewUploads(e.id)} style={btnStyle}>
+Uploads bekijken
+</button>
+
+<button onClick={downloadQR} style={btnStyle}>
+Download QR
+</button>
+
+<button onClick={()=>editEvent(e)} style={btnStyle}>
+Bewerken
+</button>
+
+<button onClick={()=>deleteEvent(e.id)} style={deleteBtn}>
+Verwijderen
+</button>
+
+</div>
+
+)
+
+})}
+
+</div>
+
+{viewEvent && (
+
+<div style={{marginTop:40,...cardStyle}}>
+
+<h2>Uploads</h2>
+
+<div style={{
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,120px)",
+gap:10
+}}>
+
+{uploads.map((u)=>{
+
+const isImage = u.type === "image"
+
+return(
+
+<div key={u.id}>
+
+{isImage ? (
+<img src={u.file_url} style={{width:"100%",borderRadius:8}}/>
+) : (
+<video src={u.file_url} style={{width:"100%",borderRadius:8}} controls/>
+)}
+
+<button onClick={()=>deleteUpload(u)} style={{width:"100%",marginTop:5}}>
+Delete
+</button>
+
+</div>
+
+)
+
+})}
+
+</div>
+
+</div>
+
+)}
+
+{editing && (
+
+<div style={{marginTop:40,...cardStyle}}>
+
+<h2>Event bewerken</h2>
+
+<input value={editing.name} onChange={(e)=>setEditing({...editing,name:e.target.value})} style={inputStyle}/>
+<input value={editing.slug} onChange={(e)=>setEditing({...editing,slug:e.target.value})} style={inputStyle}/>
+
+<input
+placeholder="Download wachtwoord"
+value={editing.download_password || ""}
+onChange={(e)=>setEditing({...editing,download_password:e.target.value})}
+style={{...inputStyle,marginTop:10}}
+/>
+
+<button onClick={saveEvent} style={goldBtnSmall}>
+Opslaan
+</button>
+
+</div>
+
+)}
+
+</div>
+
+)
+
+}
+
+/* STYLES */
+
+const containerStyle:CSSProperties={
+background:"#f5efe6",
+minHeight:"100vh",
+padding:40
+}
+
+const loginStyle:CSSProperties={
+height:"100vh",
+display:"flex",
+justifyContent:"center",
+alignItems:"center",
+flexDirection:"column",
+background:"#f5efe6"
+}
+
+const loginInput:CSSProperties={
+width:220,
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+marginBottom:10
+}
+
+const statsGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
+gap:20,
+marginBottom:40
+}
+
+const eventGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,320px)",
+gap:25
+}
+
+const statCard:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 2px 8px rgba(0,0,0,0.05)"
+}
+
+const cardStyle:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
+}
+
+const inputStyle:CSSProperties={
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+width:"100%"
+}
+
+const btnStyle:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+border:"1px solid #ddd",
+background:"#fff",
+width:"100%",
+textAlign:"center"
+}
+
+const goldBtnSmall:CSSProperties={
+padding:"10px 16px",
+borderRadius:8,
+background:"#d4a24c",
+color:"#fff",
+border:"none"
+}
+
+const deleteBtn:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"red",
+color:"#fff",
+border:"none",
+width:"100%"
 }
