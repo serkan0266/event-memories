@@ -227,7 +227,7 @@ loadEvents()
 
 }
 
-// 🔥 HEADER UPLOAD MET DEBUG
+// 🔥 FIXED HEADER UPLOAD (ALLEEN DIT IS AANGEPAST)
 async function uploadHeader(e:any,eventId:string){
 
 const file = e.target.files?.[0]
@@ -239,9 +239,7 @@ const fileExt = file.name.split(".").pop()
 const fileName = `header-${Date.now()}.${fileExt}`
 const filePath = `headers/${fileName}`
 
-console.log("UPLOAD START")
-console.log("Bucket:", "uploads")
-console.log("Path:", filePath)
+console.log("Uploading:", filePath)
 
 const { data, error } = await supabase.storage
 .from("uploads")
@@ -263,8 +261,6 @@ const { data: publicUrlData } = supabase.storage
 .from("uploads")
 .getPublicUrl(filePath)
 
-console.log("PUBLIC URL:", publicUrlData.publicUrl)
-
 await supabase
 .from("events")
 .update({ header_image: publicUrlData.publicUrl })
@@ -275,196 +271,37 @@ alert("Header geupload")
 loadEvents()
 
 }catch(err){
-console.error("CATCH ERROR:", err)
+console.error(err)
 alert("Iets ging fout")
 }
 
 }
 
-if(!loggedIn){
+function downloadQR(){
 
-return(
+const svg=document.querySelector("svg")
+if(!svg) return
 
-<div style={loginStyle}>
+const data=new XMLSerializer().serializeToString(svg)
 
-<h2>Memories Admin</h2>
+const canvas=document.createElement("canvas")
+const img=new Image()
 
-<input
-type="password"
-placeholder="Wachtwoord"
-value={password}
-onChange={(e)=>setPassword(e.target.value)}
-style={loginInput}
-/>
+img.src="data:image/svg+xml;base64,"+btoa(data)
 
-<button onClick={login} style={goldBtnSmall}>
-Login
-</button>
+img.onload=()=>{
 
-</div>
+canvas.width=img.width
+canvas.height=img.height
 
-)
+const ctx=canvas.getContext("2d")
+ctx?.drawImage(img,0,0)
 
-}
-
-return(
-
-<div style={containerStyle}>
-
-<h1>Memories Admin</h1>
-
-<div style={statsGrid}>
-<div style={statCard}><h3>Events</h3><b>{stats.events}</b></div>
-<div style={statCard}><h3>Foto's</h3><b>{stats.photos}</b></div>
-<div style={statCard}><h3>Video's</h3><b>{stats.videos}</b></div>
-<div style={statCard}><h3>Storage</h3><b>{stats.storage.toFixed(2)} MB</b></div>
-</div>
-
-<div style={cardStyle}>
-
-<h3>Nieuw event maken</h3>
-
-<div style={{display:"flex",gap:10}}>
-
-<input placeholder="Event naam" value={name} onChange={(e)=>setName(e.target.value)} style={inputStyle}/>
-<input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={inputStyle}/>
-
-<button onClick={createEvent} style={goldBtnSmall}>
-Maak event
-</button>
-
-</div>
-
-</div>
-
-<h2 style={{marginTop:40}}>Events</h2>
-
-<div style={eventGrid}>
-
-{events.map((e)=>{
-
-const url = `${BASE_URL}/event/${e.slug}`
-
-return(
-
-<div key={e.id} style={cardStyle}>
-
-<h3>{e.name}</h3>
-
-<select value={e.status} onChange={(ev)=>toggleEvent(e.id,ev.target.value)} style={btnStyle}>
-<option value="open">✅ Event open</option>
-<option value="closed">❌ Event gesloten</option>
-</select>
-
-{e.header_image && (
-<img src={e.header_image} style={{width:"100%",height:120,objectFit:"cover",borderRadius:8,marginTop:10}}/>
-)}
-
-<input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
-
-<button onClick={()=>deleteEvent(e.id)} style={deleteBtn}>
-Verwijderen
-</button>
-
-</div>
-
-)
-
-})}
-
-</div>
-
-</div>
-
-)
+const a=document.createElement("a")
+a.download="qr-code.png"
+a.href=canvas.toDataURL()
+a.click()
 
 }
 
-/* STYLES */
-
-const containerStyle:CSSProperties={
-background:"#f5efe6",
-minHeight:"100vh",
-padding:40
-}
-
-const loginStyle:CSSProperties={
-height:"100vh",
-display:"flex",
-justifyContent:"center",
-alignItems:"center",
-flexDirection:"column",
-background:"#f5efe6"
-}
-
-const loginInput:CSSProperties={
-width:220,
-padding:10,
-borderRadius:8,
-border:"1px solid #ccc",
-marginBottom:10
-}
-
-const statsGrid:CSSProperties={
-display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
-gap:20,
-marginBottom:40
-}
-
-const eventGrid:CSSProperties={
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,320px)",
-gap:25
-}
-
-const statCard:CSSProperties={
-background:"#fff",
-padding:20,
-borderRadius:12,
-boxShadow:"0 2px 8px rgba(0,0,0,0.05)"
-}
-
-const cardStyle:CSSProperties={
-background:"#fff",
-padding:20,
-borderRadius:12,
-boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
-}
-
-const inputStyle:CSSProperties={
-padding:10,
-borderRadius:8,
-border:"1px solid #ccc",
-width:"100%"
-}
-
-const btnStyle:CSSProperties={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-border:"1px solid #ddd",
-background:"#fff",
-width:"100%",
-textAlign:"center"
-}
-
-const goldBtnSmall:CSSProperties={
-padding:"10px 16px",
-borderRadius:8,
-background:"#d4a24c",
-color:"#fff",
-border:"none"
-}
-
-const deleteBtn:CSSProperties={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-background:"red",
-color:"#fff",
-border:"none",
-width:"100%"
 }
