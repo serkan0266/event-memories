@@ -227,13 +227,11 @@ loadEvents()
 
 }
 
-// 🔥 FIXED HEADER UPLOAD
+// HEADER UPLOAD FIX
 async function uploadHeader(e:any,eventId:string){
 
 const file = e.target.files?.[0]
 if(!file) return
-
-try{
 
 const fileExt = file.name.split(".").pop()
 const fileName = `header-${Date.now()}.${fileExt}`
@@ -248,8 +246,7 @@ contentType: file.type
 })
 
 if(error){
-console.error(error)
-alert("Upload fout: " + error.message)
+alert("Upload fout")
 return
 }
 
@@ -262,17 +259,14 @@ await supabase
 .update({ header_image: data.publicUrl })
 .eq("id", eventId)
 
-// 🔥 DIRECT UI UPDATE (ZONDER RELOAD BUG)
-setEvents(prev => prev.map(ev =>
+// DIRECT UI UPDATE
+setEvents(prev =>
+prev.map(ev =>
 ev.id === eventId ? { ...ev, header_image: data.publicUrl } : ev
-))
+)
+)
 
 alert("Header geupload")
-
-}catch(err){
-console.error(err)
-alert("Iets ging fout")
-}
 
 }
 
@@ -289,7 +283,6 @@ const img=new Image()
 img.src="data:image/svg+xml;base64,"+btoa(data)
 
 img.onload=()=>{
-
 canvas.width=img.width
 canvas.height=img.height
 
@@ -300,7 +293,6 @@ const a=document.createElement("a")
 a.download="qr-code.png"
 a.href=canvas.toDataURL()
 a.click()
-
 }
 
 }
@@ -308,9 +300,7 @@ a.click()
 if(!loggedIn){
 
 return(
-
 <div style={loginStyle}>
-
 <h2>Memories Admin</h2>
 
 <input
@@ -324,9 +314,7 @@ style={loginInput}
 <button onClick={login} style={goldBtnSmall}>
 Login
 </button>
-
 </div>
-
 )
 
 }
@@ -345,20 +333,16 @@ return(
 </div>
 
 <div style={cardStyle}>
-
 <h3>Nieuw event maken</h3>
 
 <div style={{display:"flex",gap:10}}>
-
 <input placeholder="Event naam" value={name} onChange={(e)=>setName(e.target.value)} style={inputStyle}/>
 <input placeholder="Slug" value={slug} onChange={(e)=>setSlug(e.target.value)} style={inputStyle}/>
 
 <button onClick={createEvent} style={goldBtnSmall}>
 Maak event
 </button>
-
 </div>
-
 </div>
 
 <h2 style={{marginTop:40}}>Events</h2>
@@ -370,7 +354,6 @@ Maak event
 const url = `${BASE_URL}/event/${e.slug}`
 
 return(
-
 <div key={e.id} style={cardStyle}>
 
 <h3>{e.name}</h3>
@@ -421,9 +404,155 @@ Verwijderen
 </button>
 
 </div>
-
 )
 
 })}
 
 </div>
+
+{viewEvent && (
+<div style={{marginTop:40,...cardStyle}}>
+<h2>Uploads</h2>
+
+<div style={{
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,120px)",
+gap:10
+}}>
+
+{uploads.map((u)=>{
+const isImage = u.type === "image"
+
+return(
+<div key={u.id}>
+{isImage ? (
+<img src={u.file_url} style={{width:"100%",borderRadius:8}}/>
+) : (
+<video src={u.file_url} style={{width:"100%",borderRadius:8}} controls/>
+)}
+
+<button onClick={()=>deleteUpload(u)} style={{width:"100%",marginTop:5}}>
+Delete
+</button>
+</div>
+)
+})}
+
+</div>
+</div>
+)}
+
+{editing && (
+<div style={{marginTop:40,...cardStyle}}>
+<h2>Event bewerken</h2>
+
+<input value={editing.name} onChange={(e)=>setEditing({...editing,name:e.target.value})} style={inputStyle}/>
+<input value={editing.slug} onChange={(e)=>setEditing({...editing,slug:e.target.value})} style={inputStyle}/>
+
+<input
+placeholder="Download wachtwoord"
+value={editing.download_password || ""}
+onChange={(e)=>setEditing({...editing,download_password:e.target.value})}
+style={{...inputStyle,marginTop:10}}
+/>
+
+<button onClick={saveEvent} style={goldBtnSmall}>
+Opslaan
+</button>
+</div>
+)}
+
+</div>
+
+)
+
+}
+
+/* STYLES */
+
+const containerStyle:CSSProperties={
+background:"#f5efe6",
+minHeight:"100vh",
+padding:40
+}
+
+const loginStyle:CSSProperties={
+height:"100vh",
+display:"flex",
+justifyContent:"center",
+alignItems:"center",
+flexDirection:"column",
+background:"#f5efe6"
+}
+
+const loginInput:CSSProperties={
+width:220,
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+marginBottom:10
+}
+
+const statsGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
+gap:20,
+marginBottom:40
+}
+
+const eventGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,320px)",
+gap:25
+}
+
+const statCard:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 2px 8px rgba(0,0,0,0.05)"
+}
+
+const cardStyle:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
+}
+
+const inputStyle:CSSProperties={
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+width:"100%"
+}
+
+const btnStyle:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+border:"1px solid #ddd",
+background:"#fff",
+width:"100%",
+textAlign:"center"
+}
+
+const goldBtnSmall:CSSProperties={
+padding:"10px 16px",
+borderRadius:8,
+background:"#d4a24c",
+color:"#fff",
+border:"none"
+}
+
+const deleteBtn:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"red",
+color:"#fff",
+border:"none",
+width:"100%"
+}
