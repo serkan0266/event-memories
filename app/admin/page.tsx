@@ -237,7 +237,7 @@ loadEvents()
 }
 
 
-// 🔥 FIXED HEADER UPLOAD
+// 🔥 FIXED HEADER UPLOAD (MET DEBUG)
 async function uploadHeader(e:any,eventId:string){
 
 const file = e.target.files?.[0]
@@ -249,7 +249,11 @@ const fileExt = file.name.split(".").pop()
 const fileName = `header-${Date.now()}.${fileExt}`
 const filePath = `headers/${fileName}`
 
-const { error } = await supabase.storage
+console.log("📤 Upload start")
+console.log("Bucket: uploads")
+console.log("Path:", filePath)
+
+const { data: uploadData, error } = await supabase.storage
 .from("uploads")
 .upload(filePath, file, {
 cacheControl: "3600",
@@ -258,18 +262,22 @@ contentType: file.type
 })
 
 if(error){
-console.error(error)
-alert("Upload fout")
+console.error("❌ UPLOAD ERROR:", error)
+alert("Upload fout: " + error.message)
 return
 }
 
-const { data } = supabase.storage
+console.log("✅ UPLOAD SUCCESS:", uploadData)
+
+const { data: publicUrlData } = supabase.storage
 .from("uploads")
 .getPublicUrl(filePath)
 
+console.log("🌍 PUBLIC URL:", publicUrlData.publicUrl)
+
 await supabase
 .from("events")
-.update({ header_image: data.publicUrl })
+.update({ header_image: publicUrlData.publicUrl })
 .eq("id", eventId)
 
 alert("Header geupload")
@@ -277,7 +285,7 @@ alert("Header geupload")
 loadEvents()
 
 }catch(err){
-console.error(err)
+console.error("❌ CATCH ERROR:", err)
 alert("Iets ging fout")
 }
 
@@ -354,7 +362,6 @@ return(
 <div style={statCard}><h3>Storage</h3><b>{stats.storage.toFixed(2)} MB</b></div>
 </div>
 
-
 <div style={cardStyle}>
 
 <h3>Nieuw event maken</h3>
@@ -371,7 +378,6 @@ Maak event
 </div>
 
 </div>
-
 
 <h2 style={{marginTop:40}}>Events</h2>
 
@@ -399,7 +405,6 @@ return(
 
 <QRCode value={url} size={120}/>
 
-{/* ✅ HEADER PREVIEW */}
 {e.header_image && (
 <img
 src={e.header_image}
@@ -441,174 +446,8 @@ Verwijderen
 
 </div>
 
-
-{/* ✅ UPLOADS VIEW */}
-{viewEvent && (
-
-<div style={{marginTop:40,...cardStyle}}>
-
-<h2>Uploads</h2>
-
-<div style={{
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,120px)",
-gap:10
-}}>
-
-{uploads.map((u)=>{
-
-const isImage = u.type === "image"
-
-return(
-
-<div key={u.id}>
-
-{isImage ? (
-<img
-src={u.file_url}
-style={{width:"100%",borderRadius:8}}
-/>
-) : (
-<video
-src={u.file_url}
-style={{width:"100%",borderRadius:8}}
-controls
-/>
-)}
-
-<button onClick={()=>deleteUpload(u)} style={{width:"100%",marginTop:5}}>
-Delete
-</button>
-
 </div>
 
 )
 
-})}
-
-</div>
-
-</div>
-
-)}
-
-
-{editing && (
-
-<div style={{marginTop:40,...cardStyle}}>
-
-<h2>Event bewerken</h2>
-
-<input value={editing.name} onChange={(e)=>setEditing({...editing,name:e.target.value})} style={inputStyle}/>
-<input value={editing.slug} onChange={(e)=>setEditing({...editing,slug:e.target.value})} style={inputStyle}/>
-
-<input
-placeholder="Download wachtwoord"
-value={editing.download_password || ""}
-onChange={(e)=>setEditing({...editing,download_password:e.target.value})}
-style={{...inputStyle,marginTop:10}}
-/>
-
-<button onClick={saveEvent} style={goldBtnSmall}>
-Opslaan
-</button>
-
-</div>
-
-)}
-
-</div>
-
-)
-
-}
-
-
-/* STYLES */
-
-const containerStyle:CSSProperties={
-background:"#f5efe6",
-minHeight:"100vh",
-padding:40
-}
-
-const loginStyle:CSSProperties={
-height:"100vh",
-display:"flex",
-justifyContent:"center",
-alignItems:"center",
-flexDirection:"column",
-background:"#f5efe6"
-}
-
-const loginInput:CSSProperties={
-width:220,
-padding:10,
-borderRadius:8,
-border:"1px solid #ccc",
-marginBottom:10
-}
-
-const statsGrid:CSSProperties={
-display:"grid",
-gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
-gap:20,
-marginBottom:40
-}
-
-const eventGrid:CSSProperties={
-display:"grid",
-gridTemplateColumns:"repeat(auto-fill,320px)",
-gap:25
-}
-
-const statCard:CSSProperties={
-background:"#fff",
-padding:20,
-borderRadius:12,
-boxShadow:"0 2px 8px rgba(0,0,0,0.05)"
-}
-
-const cardStyle:CSSProperties={
-background:"#fff",
-padding:20,
-borderRadius:12,
-boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
-}
-
-const inputStyle:CSSProperties={
-padding:10,
-borderRadius:8,
-border:"1px solid #ccc",
-width:"100%"
-}
-
-const btnStyle:CSSProperties={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-border:"1px solid #ddd",
-background:"#fff",
-width:"100%",
-textAlign:"center"
-}
-
-const goldBtnSmall:CSSProperties={
-padding:"10px 16px",
-borderRadius:8,
-background:"#d4a24c",
-color:"#fff",
-border:"none"
-}
-
-const deleteBtn:CSSProperties={
-display:"block",
-marginTop:10,
-padding:"10px",
-borderRadius:8,
-background:"red",
-color:"#fff",
-border:"none",
-width:"100%"
 }
