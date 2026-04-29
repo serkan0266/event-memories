@@ -39,11 +39,16 @@ loadEvent()
 
 async function loadEvent(){
 
-const {data} = await supabase
+const {data,error} = await supabase
 .from("events")
 .select("*")
 .eq("slug",slug)
 .single()
+
+if(error){
+console.error("EVENT LOAD ERROR:",error)
+return
+}
 
 setEvent(data)
 
@@ -89,18 +94,19 @@ const {error} = await supabase.storage
 .upload(path,file)
 
 if(error){
+console.error(error)
 alert("Upload fout")
 setUploading(false)
 return
 }
 
-const {data:url} = supabase.storage
+const publicUrl = supabase.storage
 .from("uploads")
-.getPublicUrl(path)
+.getPublicUrl(path).data.publicUrl
 
 await supabase.from("uploads").insert({
 event_id:event.id,
-file_url:url.publicUrl,
+file_url:publicUrl,
 type:"image",
 name:name,
 message:message,
@@ -124,7 +130,7 @@ if(!event){
 return <div style={{padding:40}}>Loading...</div>
 }
 
-const headerUrl = event.header_image || null
+const headerUrl = event?.header_image ? event.header_image : null
 
 if(event.status==="closed"){
 
@@ -227,7 +233,6 @@ style={{display:"none"}}
 Maximaal 50 afbeeldingen tegelijk
 </p>
 
-{/* 🎥 VIDEO BUTTON TERUG */}
 <button
 onClick={()=>window.open("https://www.dropbox.com/request/2qE262FJbK3WfdjhAvM1")}
 style={{
@@ -249,7 +254,6 @@ marginTop:10
 Video toevoegen
 </button>
 
-{/* 🔥 UPLOAD UI */}
 {uploading && (
 
 <div style={uploadBox}>
@@ -274,7 +278,6 @@ Laat deze pagina open tot upload is voltooid
 
 )}
 
-{/* ✅ SUCCESS */}
 {uploadDone && (
 
 <div style={successBox}>
@@ -317,7 +320,7 @@ Powered by ShareMemories
 
 }
 
-/* ✅ STYLES */
+/* STYLES */
 
 const uploadBox:CSSProperties = {
 background:"#fff",
