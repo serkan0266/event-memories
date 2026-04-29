@@ -35,7 +35,6 @@ loadEvents()
 }
 },[loggedIn])
 
-
 function login(){
 if(password===ADMIN_PASSWORD){
 setLoggedIn(true)
@@ -43,7 +42,6 @@ setLoggedIn(true)
 alert("Verkeerd wachtwoord")
 }
 }
-
 
 async function loadEvents(){
 
@@ -120,7 +118,6 @@ storage:totalStorage
 
 }
 
-
 async function createEvent(){
 
 if(!name||!slug) return
@@ -139,7 +136,6 @@ loadEvents()
 
 }
 
-
 async function toggleEvent(id:string,status:string){
 
 await supabase
@@ -150,7 +146,6 @@ await supabase
 loadEvents()
 
 }
-
 
 async function viewUploads(eventId:string){
 
@@ -170,7 +165,6 @@ setUploads(data||[])
 
 }
 
-
 // DELETE UPLOAD + STORAGE
 async function deleteUpload(upload:any){
 
@@ -187,7 +181,6 @@ await supabase.from("uploads").delete().eq("id",upload.id)
 setUploads(uploads.filter(u=>u.id!==upload.id))
 
 }
-
 
 // DELETE EVENT + ALLES
 async function deleteEvent(id:string){
@@ -214,11 +207,9 @@ loadEvents()
 
 }
 
-
 function editEvent(event:any){
 setEditing({...event})
 }
-
 
 async function saveEvent(){
 
@@ -236,8 +227,7 @@ loadEvents()
 
 }
 
-
-// 🔥 FIXED HEADER UPLOAD (MET DEBUG)
+// 🔥 HEADER UPLOAD MET DEBUG
 async function uploadHeader(e:any,eventId:string){
 
 const file = e.target.files?.[0]
@@ -249,11 +239,11 @@ const fileExt = file.name.split(".").pop()
 const fileName = `header-${Date.now()}.${fileExt}`
 const filePath = `headers/${fileName}`
 
-console.log("📤 Upload start")
-console.log("Bucket: uploads")
+console.log("UPLOAD START")
+console.log("Bucket:", "uploads")
 console.log("Path:", filePath)
 
-const { data: uploadData, error } = await supabase.storage
+const { data, error } = await supabase.storage
 .from("uploads")
 .upload(filePath, file, {
 cacheControl: "3600",
@@ -262,18 +252,18 @@ contentType: file.type
 })
 
 if(error){
-console.error("❌ UPLOAD ERROR:", error)
+console.error("UPLOAD ERROR:", error)
 alert("Upload fout: " + error.message)
 return
 }
 
-console.log("✅ UPLOAD SUCCESS:", uploadData)
+console.log("UPLOAD SUCCESS:", data)
 
 const { data: publicUrlData } = supabase.storage
 .from("uploads")
 .getPublicUrl(filePath)
 
-console.log("🌍 PUBLIC URL:", publicUrlData.publicUrl)
+console.log("PUBLIC URL:", publicUrlData.publicUrl)
 
 await supabase
 .from("events")
@@ -285,42 +275,11 @@ alert("Header geupload")
 loadEvents()
 
 }catch(err){
-console.error("❌ CATCH ERROR:", err)
+console.error("CATCH ERROR:", err)
 alert("Iets ging fout")
 }
 
 }
-
-
-function downloadQR(){
-
-const svg=document.querySelector("svg")
-if(!svg) return
-
-const data=new XMLSerializer().serializeToString(svg)
-
-const canvas=document.createElement("canvas")
-const img=new Image()
-
-img.src="data:image/svg+xml;base64,"+btoa(data)
-
-img.onload=()=>{
-
-canvas.width=img.width
-canvas.height=img.height
-
-const ctx=canvas.getContext("2d")
-ctx?.drawImage(img,0,0)
-
-const a=document.createElement("a")
-a.download="qr-code.png"
-a.href=canvas.toDataURL()
-a.click()
-
-}
-
-}
-
 
 if(!loggedIn){
 
@@ -347,7 +306,6 @@ Login
 )
 
 }
-
 
 return(
 
@@ -398,41 +356,11 @@ return(
 <option value="closed">❌ Event gesloten</option>
 </select>
 
-<p>👥 {e.guests} gasten hebben geupload</p>
-<p>📸 {e.photos} foto's</p>
-<p>🎥 {e.videos} video's</p>
-<p>💾 {e.storage.toFixed(2)} MB</p>
-
-<QRCode value={url} size={120}/>
-
 {e.header_image && (
-<img
-src={e.header_image}
-style={{
-width:"100%",
-height:120,
-objectFit:"cover",
-borderRadius:8,
-marginTop:10
-}}
-/>
+<img src={e.header_image} style={{width:"100%",height:120,objectFit:"cover",borderRadius:8,marginTop:10}}/>
 )}
 
 <input type="file" onChange={(ev)=>uploadHeader(ev,e.id)} />
-
-<a href={url} target="_blank" style={btnStyle}>Open Event</a>
-
-<button onClick={()=>viewUploads(e.id)} style={btnStyle}>
-Uploads bekijken
-</button>
-
-<button onClick={downloadQR} style={btnStyle}>
-Download QR
-</button>
-
-<button onClick={()=>editEvent(e)} style={btnStyle}>
-Bewerken
-</button>
 
 <button onClick={()=>deleteEvent(e.id)} style={deleteBtn}>
 Verwijderen
@@ -450,4 +378,93 @@ Verwijderen
 
 )
 
+}
+
+/* STYLES */
+
+const containerStyle:CSSProperties={
+background:"#f5efe6",
+minHeight:"100vh",
+padding:40
+}
+
+const loginStyle:CSSProperties={
+height:"100vh",
+display:"flex",
+justifyContent:"center",
+alignItems:"center",
+flexDirection:"column",
+background:"#f5efe6"
+}
+
+const loginInput:CSSProperties={
+width:220,
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+marginBottom:10
+}
+
+const statsGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
+gap:20,
+marginBottom:40
+}
+
+const eventGrid:CSSProperties={
+display:"grid",
+gridTemplateColumns:"repeat(auto-fill,320px)",
+gap:25
+}
+
+const statCard:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 2px 8px rgba(0,0,0,0.05)"
+}
+
+const cardStyle:CSSProperties={
+background:"#fff",
+padding:20,
+borderRadius:12,
+boxShadow:"0 3px 10px rgba(0,0,0,0.05)"
+}
+
+const inputStyle:CSSProperties={
+padding:10,
+borderRadius:8,
+border:"1px solid #ccc",
+width:"100%"
+}
+
+const btnStyle:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+border:"1px solid #ddd",
+background:"#fff",
+width:"100%",
+textAlign:"center"
+}
+
+const goldBtnSmall:CSSProperties={
+padding:"10px 16px",
+borderRadius:8,
+background:"#d4a24c",
+color:"#fff",
+border:"none"
+}
+
+const deleteBtn:CSSProperties={
+display:"block",
+marginTop:10,
+padding:"10px",
+borderRadius:8,
+background:"red",
+color:"#fff",
+border:"none",
+width:"100%"
 }
