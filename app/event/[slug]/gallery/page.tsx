@@ -80,7 +80,7 @@ setUploads(data || [])
 
 }
 
-// DELETE
+// DELETE (🔒 FIXED)
 async function deletePhoto(upload:any){
 
 if(!confirm("Foto verwijderen?")) return
@@ -91,7 +91,13 @@ if(path){
 await supabase.storage.from("uploads").remove([path])
 }
 
-await supabase.from("uploads").delete().eq("id",upload.id)
+const uploaderId = localStorage.getItem("uploaderId")
+
+await supabase
+  .from("uploads")
+  .delete()
+  .eq("id",upload.id)
+  .eq("uploader_id", uploaderId)
 
 setUploads(uploads.filter(u=>u.id!==upload.id))
 setViewer(null)
