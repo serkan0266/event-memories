@@ -138,7 +138,10 @@ export default function EventPage() {
 
       <div style={heroWrap}>
         {headerUrl ? (
-          <img src={headerUrl} style={heroImg} alt="" />
+          <>
+            <img src={headerUrl} style={heroImgBlurBg} alt="" />
+            <img src={headerUrl} style={heroImg} alt="" />
+          </>
         ) : (
           <div style={heroFallback} />
         )}
@@ -305,9 +308,21 @@ const heroWrap: CSSProperties = {
 }
 
 const heroImg: CSSProperties = {
+  position: "relative",
   width: "100%",
   height: "100%",
-  objectFit: "cover"
+  objectFit: "contain",
+  zIndex: 1
+}
+
+const heroImgBlurBg: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  filter: "blur(30px) brightness(0.7)",
+  transform: "scale(1.2)"
 }
 
 const heroFallback: CSSProperties = {
