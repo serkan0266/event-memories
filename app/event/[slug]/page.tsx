@@ -262,8 +262,8 @@ const gold = "#b8935a"
 const goldSoft = "#e9dcc3"
 const clay = "#8a6a54"
 
-const serif = '"Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif'
-const sans = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif'
+const serif = 'var(--font-serif), "Iowan Old Style", "Palatino Linotype", Georgia, serif'
+const sans = 'var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 
 /* ===== LOADING ===== */
 
