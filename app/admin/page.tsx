@@ -575,8 +575,8 @@ const clay = "#8a6a54"
 const ok = "#6b7d5f"
 const danger = "#a34a3d"
 
-const serif = '"Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif'
-const sans = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif'
+const serif = 'var(--font-serif), "Iowan Old Style", "Palatino Linotype", Georgia, serif'
+const sans = 'var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 
 /* ===== LOGIN ===== */
 
