@@ -1,355 +1,534 @@
 "use client"
 
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { useParams,useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import type { CSSProperties } from "react"
 
-export default function EventPage(){
+export default function EventPage() {
 
-const params = useParams()
-const router = useRouter()
+  const params = useParams()
+  const router = useRouter()
 
-const slug = params.slug as string
+  const slug = params.slug as string
 
-const [event,setEvent] = useState<any>(null)
-const [name,setName] = useState("")
-const [message,setMessage] = useState("")
-const [uploading,setUploading] = useState(false)
-const [progress,setProgress] = useState(0)
-const [count,setCount] = useState(0)
-const [uploadedCount,setUploadedCount] = useState(0)
-const [uploadDone,setUploadDone] = useState(false)
-const [uploaderId,setUploaderId] = useState("")
+  const [event, setEvent] = useState<any>(null)
+  const [name, setName] = useState("")
+  const [message, setMessage] = useState("")
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [count, setCount] = useState(0)
+  const [uploadedCount, setUploadedCount] = useState(0)
+  const [uploadDone, setUploadDone] = useState(false)
+  const [uploaderId, setUploaderId] = useState("")
+  const [error, setError] = useState<string | null>(null)
 
-useEffect(()=>{
+  const MAX_FILES = 50
 
-let id = localStorage.getItem("uploaderId")
+  useEffect(() => {
+    let id = localStorage.getItem("uploaderId")
 
-if(!id){
-id = crypto.randomUUID()
-localStorage.setItem("uploaderId",id)
+    if (!id) {
+      id = crypto.randomUUID()
+      localStorage.setItem("uploaderId", id)
+    }
+
+    setUploaderId(id)
+    loadEvent()
+  }, [])
+
+  async function loadEvent() {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("slug", slug)
+      .single()
+
+    if (error) {
+      console.error("EVENT LOAD ERROR:", error)
+      return
+    }
+
+    setEvent(data)
+  }
+
+  async function handlePhotos(e: any) {
+    const files = e.target.files as FileList
+
+    if (!files || !event) return
+
+    if (files.length > MAX_FILES) {
+      setError(`Maximaal ${MAX_FILES} afbeeldingen tegelijk`)
+      return
+    }
+
+    setError(null)
+    setUploading(true)
+    setUploadDone(false)
+    setCount(files.length)
+
+    let done = 0
+
+    const { data: userData } = await supabase.auth.getUser()
+    const userId = userData?.user?.id
+
+    if (!userId) {
+      setError("Er ging iets mis, ververs de pagina en probeer opnieuw")
+      setUploading(false)
+      return
+    }
+
+    const cleanSlug = event.slug.replace(/[^a-z0-9]/gi, "-").toLowerCase()
+
+    for (const file of Array.from(files) as File[]) {
+
+      if (!file.type.startsWith("image")) continue
+
+      const cleanName = file.name.replace(/[^a-z0-9.]/gi, "-").toLowerCase()
+      const path = `${cleanSlug}/${Date.now()}-${cleanName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from("uploads")
+        .upload(path, file)
+
+      if (uploadError) {
+        console.error(uploadError)
+        setError("Uploaden mislukt, probeer het opnieuw")
+        setUploading(false)
+        return
+      }
+
+      const publicUrl = supabase.storage
+        .from("uploads")
+        .getPublicUrl(path).data.publicUrl
+
+      await supabase.from("uploads").insert({
+        event_id: event.id,
+        file_url: publicUrl,
+        type: "image",
+        name: name,
+        message: message,
+        uploader_id: uploaderId,
+        user_id: userId,
+        file_size: file.size
+      })
+
+      done++
+      setUploadedCount(done)
+      setProgress(Math.round((done / files.length) * 100))
+    }
+
+    setUploading(false)
+    setUploadDone(true)
+  }
+
+  if (!event) {
+    return (
+      <div style={loadingWrap}>
+        <div style={loadingMark}>SM</div>
+      </div>
+    )
+  }
+
+  const headerUrl = event?.header_image ? event.header_image : null
+  const isClosed = event.status === "closed"
+
+  return (
+    <div style={pageStyle}>
+
+      <div style={heroWrap}>
+        {headerUrl ? (
+          <img src={headerUrl} style={heroImg} alt="" />
+        ) : (
+          <div style={heroFallback} />
+        )}
+        <div style={heroOverlay} />
+        <h1 style={heroTitle}>{event.name}</h1>
+      </div>
+
+      <div style={contentWrap}>
+
+        {isClosed ? (
+          <>
+            <p style={introText}>Inzendingen voor dit event zijn gesloten</p>
+            <button
+              onClick={() => router.push(`/event/${slug}/gallery`)}
+              style={primaryBtn}
+            >
+              Galerij bekijken
+            </button>
+          </>
+        ) : (
+          <>
+            <p style={introText}>
+              Alle momenten van deze speciale dag komen hier samen
+            </p>
+
+            <div style={formCard}>
+
+              <label style={fieldLabel}>Naam</label>
+              <input
+                placeholder="Jouw naam"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={inputStyle}
+              />
+
+              <label style={fieldLabel}>Bericht</label>
+              <textarea
+                placeholder="Laat een bericht achter…"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                style={textareaStyle}
+              />
+
+              <label style={uploadTile}>
+                <span style={uploadIcon}>+</span>
+                <span>Foto's toevoegen</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handlePhotos}
+                  style={{ display: "none" }}
+                />
+              </label>
+              <p style={helperText}>Maximaal {MAX_FILES} afbeeldingen tegelijk</p>
+
+              <button
+                onClick={() => window.open("https://www.dropbox.com/request/2qE262FJbK3WfdjhAvM1")}
+                style={uploadTileButton}
+              >
+                <span style={uploadIcon}>+</span>
+                <span>Video toevoegen</span>
+              </button>
+
+              {error && (
+                <p style={errorText}>{error}</p>
+              )}
+
+              {uploading && (
+                <div style={statusBox}>
+                  <p style={statusTitle}>Foto's uploaden — {progress}%</p>
+                  <p style={statusSub}>{uploadedCount} van {count} verwerkt</p>
+                  <p style={statusFootnote}>Laat deze pagina open tot de upload klaar is</p>
+                  <div style={progressBar}>
+                    <div style={{ ...progressFill, width: progress + "%" }} />
+                  </div>
+                </div>
+              )}
+
+              {uploadDone && !uploading && (
+                <div style={statusBox}>
+                  <p style={statusTitle}>Upload voltooid</p>
+                  <p style={statusSub}>Je foto's zijn toegevoegd, bedankt!</p>
+                </div>
+              )}
+
+            </div>
+
+            <button
+              onClick={() => router.push(`/event/${slug}/gallery`)}
+              style={secondaryBtn}
+            >
+              Galerij bekijken
+            </button>
+          </>
+        )}
+
+        <div style={footerBrand}>
+          <img
+            src="https://sharememories.nl/wp-content/uploads/2026/04/Untitled_design-removebg-preview.png"
+            style={footerLogo}
+            alt="Share Memories"
+          />
+          <p style={footerText}>Powered by Share Memories</p>
+        </div>
+
+      </div>
+    </div>
+  )
 }
 
-setUploaderId(id)
+/* ===== TOKENS — zelfde merktaal als admin paneel ===== */
 
-loadEvent()
+const ink = "#1c1a17"
+const ivory = "#f7f2ea"
+const card = "#fffdf9"
+const gold = "#b8935a"
+const goldSoft = "#e9dcc3"
+const clay = "#8a6a54"
 
-},[])
+const serif = '"Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif'
+const sans = '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif'
 
-async function loadEvent(){
+/* ===== LOADING ===== */
 
-const {data,error} = await supabase
-.from("events")
-.select("*")
-.eq("slug",slug)
-.single()
-
-if(error){
-console.error("EVENT LOAD ERROR:",error)
-return
+const loadingWrap: CSSProperties = {
+  minHeight: "100vh",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: ivory
 }
 
-setEvent(data)
-
+const loadingMark: CSSProperties = {
+  width: 44,
+  height: 44,
+  borderRadius: "50%",
+  border: `1px solid ${gold}`,
+  color: gold,
+  fontFamily: serif,
+  fontSize: 15,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
 }
 
-async function handlePhotos(e:any){
+/* ===== SHELL ===== */
 
-const files = e.target.files as FileList
-
-if(!files || !event) return
-
-if(files.length > 100){
-alert("Maximaal 100 afbeeldingen tegelijk uploaden")
-return
+const pageStyle: CSSProperties = {
+  minHeight: "100vh",
+  background: ivory,
+  fontFamily: sans,
+  color: ink,
+  paddingBottom: 60
 }
 
-setUploading(true)
-setUploadDone(false)
-setCount(files.length)
+/* ===== HERO ===== */
 
-let done = 0
-
-const { data: userData } = await supabase.auth.getUser()
-const userId = userData?.user?.id
-
-if(!userId){
-alert("Fout met gebruiker, probeer opnieuw")
-setUploading(false)
-return
+const heroWrap: CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: 280,
+  overflow: "hidden"
 }
 
-const cleanSlug = event.slug.replace(/[^a-z0-9]/gi, "-").toLowerCase()
-
-for(const file of Array.from(files) as File[]){
-
-if(!file.type.startsWith("image")) continue
-
-const cleanName = file.name.replace(/[^a-z0-9.]/gi, "-").toLowerCase()
-const path = `${cleanSlug}/${Date.now()}-${cleanName}`
-
-const {error} = await supabase.storage
-.from("uploads")
-.upload(path,file)
-
-if(error){
-console.error(error)
-alert("Upload fout")
-setUploading(false)
-return
+const heroImg: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover"
 }
 
-const publicUrl = supabase.storage
-.from("uploads")
-.getPublicUrl(path).data.publicUrl
-
-await supabase.from("uploads").insert({
-event_id:event.id,
-file_url:publicUrl,
-type:"image",
-name:name,
-message:message,
-uploader_id:uploaderId,
-user_id:userId,
-file_size: file.size
-})
-
-done++
-setUploadedCount(done)
-setProgress(Math.round((done/files.length)*100))
-
+const heroFallback: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  background: `linear-gradient(135deg, ${ink}, #3a352c)`
 }
 
-setUploading(false)
-setUploadDone(true)
-
+const heroOverlay: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background: "linear-gradient(180deg, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.55) 100%)"
 }
 
-if(!event){
-return <div style={{padding:40}}>Loading...</div>
+const heroTitle: CSSProperties = {
+  position: "absolute",
+  bottom: 22,
+  left: 0,
+  right: 0,
+  textAlign: "center",
+  fontFamily: serif,
+  color: "#fff",
+  fontSize: 34,
+  fontWeight: 500,
+  padding: "0 20px",
+  margin: 0,
+  textShadow: "0 2px 12px rgba(0,0,0,0.3)"
 }
 
-const headerUrl = event?.header_image ? event.header_image : null
+/* ===== CONTENT ===== */
 
-if(event.status==="closed"){
-
-return(
-
-<div style={{maxWidth:650,margin:"auto",padding:20,textAlign:"center"}}>
-
-{headerUrl && (
-<img src={headerUrl} style={{width:"100%",borderRadius:16,marginBottom:25}}/>
-)}
-
-<h1 style={{fontFamily:"cursive",fontSize:46}}>
-{event.name}
-</h1>
-
-<p style={{fontSize:18,marginTop:20}}>
-Inzendingen gesloten
-</p>
-
-<button
-onClick={()=>router.push(`/event/${slug}/gallery`)}
-style={{
-marginTop:40,
-background:"#d4a24c",
-color:"#fff",
-padding:"14px 30px",
-borderRadius:12,
-border:"none",
-fontSize:16
-}}
->
-Galerij bekijken
-</button>
-
-</div>
-
-)
-
+const contentWrap: CSSProperties = {
+  maxWidth: 480,
+  margin: "0 auto",
+  padding: "32px 20px 0",
+  textAlign: "center"
 }
 
-return(
-
-<div style={{maxWidth:650,margin:"auto",padding:20,textAlign:"center"}}>
-
-{headerUrl && (
-<img src={headerUrl} style={{width:"100%",borderRadius:16,marginBottom:25}}/>
-)}
-
-<h1 style={{fontFamily:"cursive",fontSize:46}}>
-{event.name}
-</h1>
-
-<p style={{fontSize:18,marginTop:10,lineHeight:1.6}}>
-Alle momenten van deze speciale dag komen hier samen ❤️
-</p>
-
-<div style={{marginTop:30}}>
-
-<input
-placeholder="Naam"
-value={name}
-onChange={(e)=>setName(e.target.value)}
-style={{width:"100%",padding:14,borderRadius:10,border:"1px solid #ddd",marginBottom:10}}
-/>
-
-<textarea
-placeholder="Laat een bericht achter..."
-value={message}
-onChange={(e)=>setMessage(e.target.value)}
-style={{width:"100%",padding:14,borderRadius:10,border:"1px solid #ddd",marginBottom:20}}
-/>
-
-<label style={{
-width:"100%",
-padding:"18px",
-border:"2px solid #ddd",
-borderRadius:12,
-cursor:"pointer",
-display:"flex",
-alignItems:"center",
-justifyContent:"center",
-gap:10,
-fontSize:18
-}}>
-
-<span style={{fontSize:22}}>📷</span>
-Afbeeldingen toevoegen
-
-<input
-type="file"
-multiple
-accept="image/*"
-onChange={handlePhotos}
-style={{display:"none"}}
-/>
-
-</label>
-
-<p style={{fontSize:13,color:"#666",marginTop:5}}>
-Maximaal 50 afbeeldingen tegelijk
-</p>
-
-<button
-onClick={()=>window.open("https://www.dropbox.com/request/2qE262FJbK3WfdjhAvM1")}
-style={{
-width:"100%",
-padding:"18px",
-border:"2px solid #ddd",
-borderRadius:12,
-background:"#fff",
-cursor:"pointer",
-display:"flex",
-alignItems:"center",
-justifyContent:"center",
-gap:10,
-fontSize:18,
-marginTop:10
-}}
->
-<span style={{fontSize:22}}>🎥</span>
-Video toevoegen
-</button>
-
-{uploading && (
-
-<div style={uploadBox}>
-
-<p style={{fontWeight:600}}>
-Foto’s uploaden... ({progress}%)
-</p>
-
-<p style={{fontSize:14,color:"#555"}}>
-{uploadedCount} van {count} foto's verwerkt
-</p>
-
-<p style={{fontSize:13,color:"#999"}}>
-Laat deze pagina open tot upload is voltooid
-</p>
-
-<div style={progressBar}>
-<div style={{...progressFill,width: progress + "%"}}/>
-</div>
-
-</div>
-
-)}
-
-{uploadDone && (
-
-<div style={successBox}>
-<p>✅ Upload voltooid </p>
-<p>Je foto's zijn succesvol toegevoegd</p>
-</div>
-
-)}
-
-</div>
-
-<button
-onClick={()=>router.push(`/event/${slug}/gallery`)}
-style={{
-marginTop:40,
-background:"#d4a24c",
-color:"#fff",
-padding:"14px 30px",
-borderRadius:12,
-border:"none",
-fontSize:16
-}}
->
-Galerij bekijken
-</button>
-
-<div style={{marginTop:50,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
-
-<img src="https://sharememories.nl/wp-content/uploads/2026/04/Untitled_design-removebg-preview.png" style={{width:110}}/>
-
-<p style={{fontSize:14}}>
-Powered by ShareMemories
-</p>
-
-</div>
-
-</div>
-
-)
-
+const introText: CSSProperties = {
+  fontSize: 15,
+  lineHeight: 1.6,
+  color: clay,
+  marginBottom: 28
 }
 
-/* STYLES */
+/* ===== FORM ===== */
 
-const uploadBox:CSSProperties = {
-background:"#fff",
-padding:20,
-borderRadius:12,
-boxShadow:"0 3px 10px rgba(0,0,0,0.05)",
-marginTop:20
+const formCard: CSSProperties = {
+  background: card,
+  border: `1px solid ${goldSoft}`,
+  borderRadius: 4,
+  padding: 24,
+  textAlign: "left"
 }
 
-const progressBar:CSSProperties = {
-width:"100%",
-height:10,
-background:"#eee",
-borderRadius:10,
-overflow:"hidden",
-marginTop:10
+const fieldLabel: CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  letterSpacing: 1,
+  textTransform: "uppercase",
+  color: clay,
+  marginBottom: 6,
+  marginTop: 14
 }
 
-const progressFill:CSSProperties = {
-height:"100%",
-background:"#d4a24c",
-transition:"0.4s ease"
+const inputStyle: CSSProperties = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: 2,
+  border: "1px solid #e4dcc9",
+  fontSize: 15,
+  fontFamily: sans,
+  background: ivory,
+  boxSizing: "border-box"
 }
 
-const successBox:CSSProperties = {
-marginTop:20,
-background:"#fff",
-padding:20,
-borderRadius:12,
-boxShadow:"0 3px 10px rgba(0,0,0,0.05)",
-textAlign:"center"
+const textareaStyle: CSSProperties = {
+  ...inputStyle,
+  minHeight: 90,
+  resize: "vertical",
+  fontFamily: sans
+}
+
+const uploadTile: CSSProperties = {
+  width: "100%",
+  marginTop: 20,
+  padding: "18px",
+  border: `1px solid ${gold}`,
+  borderRadius: 2,
+  background: ink,
+  color: "#f5efe4",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
+  fontSize: 15,
+  boxSizing: "border-box"
+}
+
+const uploadTileButton: CSSProperties = {
+  width: "100%",
+  marginTop: 10,
+  padding: "18px",
+  border: `1px solid ${goldSoft}`,
+  borderRadius: 2,
+  background: "transparent",
+  color: ink,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
+  fontSize: 15,
+  boxSizing: "border-box"
+}
+
+const uploadIcon: CSSProperties = {
+  fontSize: 18,
+  color: gold
+}
+
+const helperText: CSSProperties = {
+  fontSize: 12,
+  color: clay,
+  marginTop: 8,
+  textAlign: "center"
+}
+
+const errorText: CSSProperties = {
+  fontSize: 13,
+  color: "#a34a3d",
+  marginTop: 12,
+  textAlign: "center"
+}
+
+/* ===== STATUS ===== */
+
+const statusBox: CSSProperties = {
+  marginTop: 20,
+  padding: 16,
+  borderRadius: 2,
+  background: ivory,
+  border: `1px solid ${goldSoft}`,
+  textAlign: "center"
+}
+
+const statusTitle: CSSProperties = {
+  fontWeight: 600,
+  fontSize: 14,
+  margin: 0
+}
+
+const statusSub: CSSProperties = {
+  fontSize: 13,
+  color: clay,
+  marginTop: 4
+}
+
+const statusFootnote: CSSProperties = {
+  fontSize: 11,
+  color: clay,
+  marginTop: 8
+}
+
+const progressBar: CSSProperties = {
+  width: "100%",
+  height: 6,
+  background: "#e4dcc9",
+  borderRadius: 10,
+  overflow: "hidden",
+  marginTop: 10
+}
+
+const progressFill: CSSProperties = {
+  height: "100%",
+  background: gold,
+  transition: "0.4s ease"
+}
+
+/* ===== BUTTONS ===== */
+
+const primaryBtn: CSSProperties = {
+  padding: "14px 30px",
+  background: ink,
+  color: gold,
+  border: "none",
+  borderRadius: 2,
+  fontSize: 14,
+  letterSpacing: 0.5,
+  cursor: "pointer"
+}
+
+const secondaryBtn: CSSProperties = {
+  marginTop: 28,
+  padding: "13px 28px",
+  background: "transparent",
+  color: ink,
+  border: `1px solid ${gold}`,
+  borderRadius: 2,
+  fontSize: 14,
+  cursor: "pointer"
+}
+
+/* ===== FOOTER ===== */
+
+const footerBrand: CSSProperties = {
+  marginTop: 56,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 8
+}
+
+const footerLogo: CSSProperties = {
+  width: 90,
+  opacity: 0.8
+}
+
+const footerText: CSSProperties = {
+  fontSize: 12,
+  color: clay,
+  letterSpacing: 0.5
 }
