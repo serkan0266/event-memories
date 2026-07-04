@@ -12,6 +12,25 @@ export default function AdminPage() {
 
   const [loggedIn, setLoggedIn] = useState(false)
   const [password, setPassword] = useState("")
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  const SESSION_KEY = "sm_admin_session"
+  const SESSION_DAYS = 7
+
+  useEffect(() => {
+    const raw = localStorage.getItem(SESSION_KEY)
+
+    if (raw) {
+      const expiresAt = Number(raw)
+      if (!isNaN(expiresAt) && Date.now() < expiresAt) {
+        setLoggedIn(true)
+      } else {
+        localStorage.removeItem(SESSION_KEY)
+      }
+    }
+
+    setCheckingSession(false)
+  }, [])
 
   const [events, setEvents] = useState<any[]>([])
   const [uploads, setUploads] = useState<any[]>([])
@@ -45,10 +64,18 @@ export default function AdminPage() {
 
   function login() {
     if (password === ADMIN_PASSWORD) {
+      const expiresAt = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000
+      localStorage.setItem(SESSION_KEY, String(expiresAt))
       setLoggedIn(true)
     } else {
       showToast("Verkeerd wachtwoord")
     }
+  }
+
+  function logout() {
+    localStorage.removeItem(SESSION_KEY)
+    setLoggedIn(false)
+    setPassword("")
   }
 
   async function loadEvents() {
@@ -308,6 +335,10 @@ export default function AdminPage() {
     }
   }
 
+  if (checkingSession) {
+    return <div style={loginWrap} />
+  }
+
   if (!loggedIn) {
     return (
       <div style={loginWrap}>
@@ -337,12 +368,17 @@ export default function AdminPage() {
     <div style={pageStyle}>
 
       <header style={headerStyle}>
-        <div style={brandRow}>
-          <div style={brandMark}>SM</div>
-          <div>
-            <div style={brandTitle}>Share Memories</div>
-            <div style={brandSub}>Admin</div>
+        <div style={brandRowWithLogout}>
+          <div style={brandRow}>
+            <div style={brandMark}>SM</div>
+            <div>
+              <div style={brandTitle}>Share Memories</div>
+              <div style={brandSub}>Admin</div>
+            </div>
           </div>
+          <button onClick={logout} style={logoutBtn}>
+            Uitloggen
+          </button>
         </div>
       </header>
 
@@ -677,9 +713,26 @@ const headerStyle: CSSProperties = {
 const brandRow: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 12,
+  gap: 12
+}
+
+const brandRowWithLogout: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
   maxWidth: 1200,
   margin: "0 auto"
+}
+
+const logoutBtn: CSSProperties = {
+  background: "transparent",
+  border: `1px solid ${gold}`,
+  color: gold,
+  borderRadius: 2,
+  padding: "8px 14px",
+  fontSize: 12,
+  letterSpacing: 0.5,
+  cursor: "pointer"
 }
 
 const brandMark: CSSProperties = {
