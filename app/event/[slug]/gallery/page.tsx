@@ -123,6 +123,22 @@ export default function Gallery() {
   return (
     <div style={pageStyle}>
 
+      <style>{`
+        .sm-masonry {
+          column-count: 2;
+          column-gap: 10px;
+        }
+        @media (min-width: 640px) {
+          .sm-masonry { column-count: 3; }
+        }
+        @media (min-width: 1000px) {
+          .sm-masonry { column-count: 4; column-gap: 16px; }
+        }
+        @media (min-width: 1300px) {
+          .sm-masonry { column-count: 5; }
+        }
+      `}</style>
+
       <div style={topBar}>
         <button onClick={() => router.push(`/event/${slug}`)} style={backBtn}>
           ← Terug
@@ -141,7 +157,7 @@ export default function Gallery() {
         </div>
       )}
 
-      <div style={masonry}>
+      <div className="sm-masonry" style={masonry}>
         {uploads.map((u, i) => (
           <div
             key={u.id}
@@ -226,7 +242,7 @@ const goldSoft = "#e9dcc3"
 const clay = "#8a6a54"
 
 const serif = 'var(--font-serif), "Iowan Old Style", "Palatino Linotype", Georgia, serif'
-const sans = 'var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+const sans = 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 
 /* ===== SHELL ===== */
 
@@ -279,8 +295,7 @@ const emptyText: CSSProperties = {
 /* ===== MASONRY ===== */
 
 const masonry: CSSProperties = {
-  columnWidth: "140px",
-  columnGap: "10px"
+  width: "100%"
 }
 
 const tile: CSSProperties = {
