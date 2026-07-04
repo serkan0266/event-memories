@@ -2,99 +2,102 @@ import { NextRequest } from "next/server"
 import JSZip from "jszip"
 import { createClient } from "@supabase/supabase-js"
 
-export async function GET(req: NextRequest){
+// Video's zijn groot — geef de functie meer tijd dan de Vercel-standaard.
+// Werkt tot 60s op het Hobby-plan zonder extra instellingen.
+export const maxDuration = 60
 
-const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const IMAGE_BATCH_SIZE = 100
+const VIDEO_BATCH_SIZE = 8
 
-const { searchParams } = new URL(req.url)
-const eventId = searchParams.get("event")
-const batch = Number(searchParams.get("batch") || 1)
+export async function GET(req: NextRequest) {
 
-if(!eventId){
-return new Response("Missing event id",{status:400})
-}
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
-// 🔥 event ophalen
-const {data:event} = await supabase
-.from("events")
-.select("*")
-.eq("id",eventId)
-.single()
+  const { searchParams } = new URL(req.url)
+  const eventId = searchParams.get("event")
+  const batch = Number(searchParams.get("batch") || 1)
+  const type = searchParams.get("type") === "video" ? "video" : "image"
 
-// 🔥 uploads ophalen
-const {data:uploads} = await supabase
-.from("uploads")
-.select("*")
-.eq("event_id",eventId)
-.order("created_at",{ascending:true})
+  if (!eventId) {
+    return new Response("Missing event id", { status: 400 })
+  }
 
-if(!uploads){
-return new Response("No uploads",{status:404})
-}
+  const { data: event } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", eventId)
+    .single()
 
-// 🔥 alleen images
-const images = uploads.filter(u=>u.type==="image")
+  if (!event) {
+    return new Response("Event not found", { status: 404 })
+  }
 
-// 🔥 batch slicing
-const batchSize = 100
-const start = (batch - 1) * batchSize
-const end = start + batchSize
+  const { data: uploads } = await supabase
+    .from("uploads")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true })
 
-const selectedImages = images.slice(start,end)
+  if (!uploads) {
+    return new Response("No uploads", { status: 404 })
+  }
 
-// 🔥 zip maken
-const zip = new JSZip()
+  const filtered = uploads.filter(u => u.type === type)
+  const batchSize = type === "video" ? VIDEO_BATCH_SIZE : IMAGE_BATCH_SIZE
 
-// 📁 media folder
-const mediaFolder = zip.folder("media")
+  const start = (batch - 1) * batchSize
+  const end = start + batchSize
+  const selected = filtered.slice(start, end)
 
-// 🔥 images toevoegen
-for(const img of selectedImages){
+  if (selected.length === 0) {
+    return new Response("Nothing to zip for this batch", { status: 404 })
+  }
 
-try{
-const res = await fetch(img.file_url)
-const blob = await res.arrayBuffer()
+  const zip = new JSZip()
+  const mediaFolder = zip.folder("media")
 
-const fileName = img.file_url.split("/").pop()
-mediaFolder?.file(fileName!, blob)
-}catch(e){
-console.log("skip file",img.file_url)
-}
+  for (const item of selected) {
+    try {
+      const res = await fetch(item.file_url)
 
-}
+      if (!res.ok) {
+        console.log("skip file (bad response)", item.file_url)
+        continue
+      }
 
+      const blob = await res.arrayBuffer()
+      const fileName = item.file_url.split("/").pop()?.split("?")[0]
+      mediaFolder?.file(fileName || `${item.id}`, blob)
+    } catch (e) {
+      console.log("skip file", item.file_url)
+    }
+  }
 
-// 🔥 ALLEEN IN ZIP 1 → berichten
-if(batch === 1){
+  // Berichten alleen bij de eerste foto-ZIP, niet bij elke video-batch
+  if (type === "image" && batch === 1) {
+    const messages = uploads
+      .filter(u => u.name || u.message)
+      .map(u => `Naam: ${u.name || "-"}\nBericht: ${u.message || "-"}\n\n`)
+      .join("")
 
-const messages = uploads
-.filter(u=>u.name || u.message)
-.map(u=>`Naam: ${u.name || "-"}\nBericht: ${u.message || "-"}\n\n`)
-.join("")
+    zip.folder("berichten")?.file("berichten.txt", messages)
+  }
 
-zip.folder("berichten")?.file("berichten.txt",messages)
+  const content = await zip.generateAsync({ type: "arraybuffer" })
 
-}
+  const cleanName = event.name
+    .replace(/[^a-z0-9]/gi, "-")
+    .toLowerCase()
 
+  const fileName = `${cleanName}-${type}-${batch}.zip`
 
-// 🔥 zip genereren
-const content = await zip.generateAsync({type:"arraybuffer"})
-
-// 🔥 bestandsnaam netjes maken
-const cleanName = event.name
-.replace(/[^a-z0-9]/gi,"-")
-.toLowerCase()
-
-const fileName = `${cleanName}-zip-${batch}.zip`
-
-return new Response(content,{
-headers:{
-"Content-Type":"application/zip",
-"Content-Disposition":`attachment; filename=${fileName}`
-}
-})
-
+  return new Response(content, {
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename=${fileName}`
+    }
+  })
 }
