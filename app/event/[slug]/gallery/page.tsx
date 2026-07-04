@@ -75,6 +75,7 @@ export default function Gallery() {
       .from("uploads")
       .select("*")
       .eq("event_id", eventData.id)
+      .eq("type", "image")
       .order("created_at", { ascending: false })
 
     setUploads(data || [])
@@ -147,15 +148,7 @@ export default function Gallery() {
             onClick={() => setViewer(i)}
             style={tile}
           >
-            {u.type === "video" ? (
-              <video src={u.file_url} style={tileMedia} muted playsInline />
-            ) : (
-              <img src={u.file_url} style={tileMedia} alt="" />
-            )}
-
-            {u.type === "video" && (
-              <div style={playBadge}>▶</div>
-            )}
+            <img src={u.file_url} style={tileMedia} alt="" />
 
             {(u.name || u.message) && (
               <div style={tileCaption}>
@@ -242,7 +235,7 @@ const pageStyle: CSSProperties = {
   background: ivory,
   fontFamily: sans,
   color: ink,
-  padding: "20px 16px 60px",
+  padding: "20px 12px 60px",
   maxWidth: 1400,
   margin: "0 auto"
 }
@@ -286,8 +279,8 @@ const emptyText: CSSProperties = {
 /* ===== MASONRY ===== */
 
 const masonry: CSSProperties = {
-  columnWidth: "180px",
-  columnGap: "12px"
+  columnWidth: "140px",
+  columnGap: "10px"
 }
 
 const tile: CSSProperties = {
@@ -303,23 +296,6 @@ const tile: CSSProperties = {
 const tileMedia: CSSProperties = {
   width: "100%",
   display: "block"
-}
-
-const playBadge: CSSProperties = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 40,
-  height: 40,
-  borderRadius: "50%",
-  background: "rgba(28,26,23,0.6)",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 14,
-  border: `1px solid ${gold}`
 }
 
 const tileCaption: CSSProperties = {
