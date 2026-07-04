@@ -12,18 +12,33 @@ export default function EventPage() {
 
   const slug = params.slug as string
 
+  // Cloudinary — unsigned upload preset, veilig om in de frontend te gebruiken
+  const CLOUDINARY_CLOUD_NAME = "lcxrn0kc"
+  const CLOUDINARY_UPLOAD_PRESET = "Events"
+
   const [event, setEvent] = useState<any>(null)
   const [name, setName] = useState("")
   const [message, setMessage] = useState("")
+
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [count, setCount] = useState(0)
   const [uploadedCount, setUploadedCount] = useState(0)
   const [uploadDone, setUploadDone] = useState(false)
-  const [uploaderId, setUploaderId] = useState("")
   const [error, setError] = useState<string | null>(null)
 
+  const [uploadingVideo, setUploadingVideo] = useState(false)
+  const [videoProgress, setVideoProgress] = useState(0)
+  const [videoCount, setVideoCount] = useState(0)
+  const [videoUploadedCount, setVideoUploadedCount] = useState(0)
+  const [videoUploadDone, setVideoUploadDone] = useState(false)
+  const [videoError, setVideoError] = useState<string | null>(null)
+
+  const [uploaderId, setUploaderId] = useState("")
+
   const MAX_FILES = 50
+  const MAX_VIDEO_FILES = 5
+  const MAX_VIDEO_SIZE_MB = 500
 
   useEffect(() => {
     let id = localStorage.getItem("uploaderId")
@@ -122,6 +137,107 @@ export default function EventPage() {
     setUploadDone(true)
   }
 
+  function uploadToCloudinary(file: File, onProgress: (pct: number) => void): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`
+
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET)
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100))
+        }
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText)
+          resolve(data.secure_url)
+        } else {
+          reject(new Error("Cloudinary upload mislukt"))
+        }
+      }
+
+      xhr.onerror = () => reject(new Error("Netwerkfout tijdens upload"))
+
+      xhr.open("POST", url)
+      xhr.send(formData)
+    })
+  }
+
+  async function handleVideos(e: any) {
+    const files = e.target.files as FileList
+
+    if (!files || !event) return
+
+    if (files.length > MAX_VIDEO_FILES) {
+      setVideoError(`Maximaal ${MAX_VIDEO_FILES} video's tegelijk`)
+      return
+    }
+
+    const fileArray = Array.from(files) as File[]
+    const tooLarge = fileArray.find(f => f.size > MAX_VIDEO_SIZE_MB * 1024 * 1024)
+
+    if (tooLarge) {
+      setVideoError(`"${tooLarge.name}" is groter dan ${MAX_VIDEO_SIZE_MB} MB. Kies een kortere video.`)
+      return
+    }
+
+    setVideoError(null)
+    setUploadingVideo(true)
+    setVideoUploadDone(false)
+    setVideoCount(fileArray.length)
+
+    let done = 0
+
+    const { data: userData } = await supabase.auth.getUser()
+    const userId = userData?.user?.id
+
+    if (!userId) {
+      setVideoError("Er ging iets mis, ververs de pagina en probeer opnieuw")
+      setUploadingVideo(false)
+      return
+    }
+
+    for (const file of fileArray) {
+
+      if (!file.type.startsWith("video")) continue
+
+      try {
+        setVideoProgress(0)
+
+        const secureUrl = await uploadToCloudinary(file, (pct) => {
+          setVideoProgress(pct)
+        })
+
+        await supabase.from("uploads").insert({
+          event_id: event.id,
+          file_url: secureUrl,
+          type: "video",
+          name: name,
+          message: message,
+          uploader_id: uploaderId,
+          user_id: userId,
+          file_size: file.size
+        })
+
+        done++
+        setVideoUploadedCount(done)
+      } catch (err) {
+        console.error(err)
+        setVideoError("Video uploaden mislukt, probeer het opnieuw")
+        setUploadingVideo(false)
+        return
+      }
+    }
+
+    setUploadingVideo(false)
+    setVideoUploadDone(true)
+  }
+
   if (!event) {
     return (
       <div style={loadingWrap}>
@@ -191,13 +307,42 @@ export default function EventPage() {
               </label>
               <p style={helperText}>Maximaal {MAX_FILES} afbeeldingen tegelijk</p>
 
-              <button
-                onClick={() => window.open("https://www.dropbox.com/request/2qE262FJbK3WfdjhAvM1")}
-                style={uploadTileButton}
-              >
+              <label style={uploadTileButton}>
                 <span style={uploadIcon}>+</span>
                 <span>Video toevoegen</span>
-              </button>
+                <input
+                  type="file"
+                  multiple
+                  accept="video/*"
+                  onChange={handleVideos}
+                  style={{ display: "none" }}
+                />
+              </label>
+              <p style={helperText}>
+                Maximaal {MAX_VIDEO_FILES} video's tegelijk, elk max {MAX_VIDEO_SIZE_MB} MB
+              </p>
+
+              {videoError && (
+                <p style={errorText}>{videoError}</p>
+              )}
+
+              {uploadingVideo && (
+                <div style={statusBox}>
+                  <p style={statusTitle}>Video's uploaden — {videoProgress}%</p>
+                  <p style={statusSub}>{videoUploadedCount} van {videoCount} verwerkt</p>
+                  <p style={statusFootnote}>Laat deze pagina open tot de upload klaar is</p>
+                  <div style={progressBar}>
+                    <div style={{ ...progressFill, width: videoProgress + "%" }} />
+                  </div>
+                </div>
+              )}
+
+              {videoUploadDone && !uploadingVideo && (
+                <div style={statusBox}>
+                  <p style={statusTitle}>Upload voltooid</p>
+                  <p style={statusSub}>Je video's zijn toegevoegd, bedankt!</p>
+                </div>
+              )}
 
               {error && (
                 <p style={errorText}>{error}</p>
