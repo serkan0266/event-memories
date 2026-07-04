@@ -1,42 +1,23 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import QRCode from "react-qr-code"
 import type { CSSProperties } from "react"
 
 export default function AdminPage() {
 
-  const ADMIN_PASSWORD = "66"
   const BASE_URL = "https://app.sharememories.nl"
 
-  const [loggedIn, setLoggedIn] = useState(false)
-  const [password, setPassword] = useState("")
-  const [checkingSession, setCheckingSession] = useState(true)
-
-  const SESSION_KEY = "sm_admin_session"
-  const SESSION_DAYS = 7
-
-  useEffect(() => {
-    const raw = localStorage.getItem(SESSION_KEY)
-
-    if (raw) {
-      const expiresAt = Number(raw)
-      if (!isNaN(expiresAt) && Date.now() < expiresAt) {
-        setLoggedIn(true)
-      } else {
-        localStorage.removeItem(SESSION_KEY)
-      }
-    }
-
-    setCheckingSession(false)
-  }, [])
+  const router = useRouter()
 
   const [events, setEvents] = useState<any[]>([])
   const [uploads, setUploads] = useState<any[]>([])
 
   const [viewEvent, setViewEvent] = useState<string | null>(null)
   const [editing, setEditing] = useState<any>(null)
+  const [headerPickerFor, setHeaderPickerFor] = useState<string | null>(null)
 
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
@@ -52,30 +33,17 @@ export default function AdminPage() {
   })
 
   useEffect(() => {
-    if (loggedIn) {
-      loadEvents()
-    }
-  }, [loggedIn])
+    loadEvents()
+  }, [])
 
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 2600)
   }
 
-  function login() {
-    if (password === ADMIN_PASSWORD) {
-      const expiresAt = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000
-      localStorage.setItem(SESSION_KEY, String(expiresAt))
-      setLoggedIn(true)
-    } else {
-      showToast("Verkeerd wachtwoord")
-    }
-  }
-
-  function logout() {
-    localStorage.removeItem(SESSION_KEY)
-    setLoggedIn(false)
-    setPassword("")
+  async function logout() {
+    await fetch("/api/admin-logout", { method: "POST" })
+    router.push("/admin/login")
   }
 
   async function loadEvents() {
@@ -265,6 +233,28 @@ export default function AdminPage() {
     loadEvents()
   }
 
+  const PRESET_HEADERS = [
+    { label: "Gender reveal", url: "https://showverhuur.nl/wp-content/uploads/2026/07/Gender-reveal-scaled.png" },
+    { label: "Bruiloft", url: "https://showverhuur.nl/wp-content/uploads/2026/07/Bruiloft-scaled.png" },
+    { label: "Verjaardag", url: "https://showverhuur.nl/wp-content/uploads/2026/07/Verjaardag-scaled.png" },
+  ]
+
+  async function setPresetHeader(eventId: string, url: string) {
+    await supabase
+      .from("events")
+      .update({ header_image: url })
+      .eq("id", eventId)
+
+    setEvents(prev =>
+      prev.map(ev =>
+        ev.id === eventId ? { ...ev, header_image: url } : ev
+      )
+    )
+
+    setHeaderPickerFor(null)
+    showToast("Header ingesteld")
+  }
+
   async function uploadHeader(e: any, eventId: string) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -301,6 +291,8 @@ export default function AdminPage() {
       )
     )
 
+    setHeaderPickerFor(null)
+
     showToast("Omslagfoto bijgewerkt")
   }
 
@@ -333,35 +325,6 @@ export default function AdminPage() {
       a.href = canvas.toDataURL()
       a.click()
     }
-  }
-
-  if (checkingSession) {
-    return <div style={loginWrap} />
-  }
-
-  if (!loggedIn) {
-    return (
-      <div style={loginWrap}>
-        <div style={loginCard}>
-          <div style={loginMark}>SM</div>
-          <h1 style={loginTitle}>Share Memories</h1>
-          <p style={loginSub}>Beheeromgeving</p>
-
-          <input
-            type="password"
-            placeholder="Wachtwoord"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && login()}
-            style={loginInput}
-          />
-
-          <button onClick={login} style={primaryBtn}>
-            Inloggen
-          </button>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -459,14 +422,42 @@ export default function AdminPage() {
                   {e.header_image ? (
                     <img src={e.header_image} style={coverImg} alt="" />
                   ) : (
-                    <label style={coverPlaceholder}>
-                      <span>+ Omslagfoto</span>
-                      <input
-                        type="file"
-                        onChange={(ev) => uploadHeader(ev, e.id)}
-                        style={{ display: "none" }}
-                      />
-                    </label>
+                    <div style={coverPlaceholder}>
+                      <span>Nog geen header</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setHeaderPickerFor(headerPickerFor === e.id ? null : e.id)}
+                    style={changeCoverText}
+                  >
+                    {e.header_image ? "Header wijzigen" : "Header kiezen"}
+                  </button>
+
+                  {headerPickerFor === e.id && (
+                    <div style={headerPickerGrid}>
+                      {PRESET_HEADERS.map((preset) => (
+                        <button
+                          key={preset.label}
+                          onClick={() => setPresetHeader(e.id, preset.url)}
+                          style={headerPickerTile}
+                        >
+                          <img src={preset.url} style={headerPickerThumb} alt={preset.label} />
+                          <span style={headerPickerLabel}>{preset.label}</span>
+                        </button>
+                      ))}
+
+                      <label style={headerPickerTile}>
+                        <div style={headerPickerUploadIcon}>+</div>
+                        <span style={headerPickerLabel}>Eigen upload</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(ev) => uploadHeader(ev, e.id)}
+                          style={{ display: "none" }}
+                        />
+                      </label>
+                    </div>
                   )}
 
                   <h3 style={eventName}>{e.name}</h3>
@@ -491,17 +482,6 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
-
-                  {e.header_image && (
-                    <label style={changeCoverText}>
-                      Omslagfoto wijzigen
-                      <input
-                        type="file"
-                        onChange={(ev) => uploadHeader(ev, e.id)}
-                        style={{ display: "none" }}
-                      />
-                    </label>
-                  )}
 
                   <div style={cardActions}>
                     <button onClick={() => viewUploads(e.id)} style={ghostBtnFull}>
@@ -627,71 +607,6 @@ const danger = "#a34a3d"
 
 const serif = 'var(--font-serif), "Iowan Old Style", "Palatino Linotype", Georgia, serif'
 const sans = 'var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-
-/* ===== LOGIN ===== */
-
-const loginWrap: CSSProperties = {
-  minHeight: "100vh",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  background: `radial-gradient(circle at 50% 0%, #2a2620 0%, ${ink} 60%)`,
-  fontFamily: sans
-}
-
-const loginCard: CSSProperties = {
-  background: card,
-  padding: "48px 40px",
-  borderRadius: 4,
-  width: 320,
-  textAlign: "center",
-  boxShadow: "0 30px 60px rgba(0,0,0,0.35)",
-  border: `1px solid ${goldSoft}`
-}
-
-const loginMark: CSSProperties = {
-  width: 44,
-  height: 44,
-  borderRadius: "50%",
-  border: `1px solid ${gold}`,
-  color: gold,
-  fontFamily: serif,
-  fontSize: 15,
-  letterSpacing: 1,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  margin: "0 auto 20px"
-}
-
-const loginTitle: CSSProperties = {
-  fontFamily: serif,
-  fontSize: 24,
-  color: ink,
-  margin: 0,
-  fontWeight: 500
-}
-
-const loginSub: CSSProperties = {
-  fontSize: 12,
-  color: clay,
-  letterSpacing: 1.5,
-  textTransform: "uppercase",
-  marginTop: 6,
-  marginBottom: 28
-}
-
-const loginInput: CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: 2,
-  border: `1px solid #e4dcc9`,
-  marginBottom: 14,
-  fontSize: 14,
-  fontFamily: sans,
-  boxSizing: "border-box",
-  background: ivory
-}
 
 /* ===== SHELL ===== */
 
@@ -1010,12 +925,62 @@ const qrActions: CSSProperties = {
 }
 
 const changeCoverText: CSSProperties = {
+  display: "block",
+  width: "100%",
   fontSize: 11,
   color: gold,
   textAlign: "center",
   cursor: "pointer",
   marginBottom: 12,
-  textDecoration: "underline"
+  background: "transparent",
+  border: "none",
+  textDecoration: "underline",
+  fontFamily: sans,
+  padding: 0
+}
+
+const headerPickerGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: 8,
+  marginBottom: 14
+}
+
+const headerPickerTile: CSSProperties = {
+  background: ivory,
+  border: `1px solid ${goldSoft}`,
+  borderRadius: 3,
+  padding: 8,
+  cursor: "pointer",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 6
+}
+
+const headerPickerThumb: CSSProperties = {
+  width: "100%",
+  height: 60,
+  objectFit: "cover",
+  borderRadius: 2
+}
+
+const headerPickerUploadIcon: CSSProperties = {
+  width: "100%",
+  height: 60,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 22,
+  color: gold,
+  border: `1px dashed ${goldSoft}`,
+  borderRadius: 2
+}
+
+const headerPickerLabel: CSSProperties = {
+  fontSize: 11,
+  color: ink,
+  textAlign: "center"
 }
 
 const cardActions: CSSProperties = {
@@ -1026,19 +991,6 @@ const cardActions: CSSProperties = {
 }
 
 /* ===== BUTTONS ===== */
-
-const primaryBtn: CSSProperties = {
-  width: "100%",
-  padding: "12px",
-  borderRadius: 2,
-  background: ink,
-  color: gold,
-  border: "none",
-  fontSize: 13,
-  letterSpacing: 1,
-  textTransform: "uppercase",
-  cursor: "pointer"
-}
 
 const primaryBtnSmall: CSSProperties = {
   padding: "11px 20px",
