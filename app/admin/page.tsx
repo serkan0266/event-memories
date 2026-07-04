@@ -131,12 +131,21 @@ export default function AdminPage() {
     setLoading(false)
   }
 
+  function slugify(text: string) {
+    return text
+      .toLowerCase()
+      .trim()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // accenten weg
+      .replace(/[^a-z0-9]+/g, "-") // alles wat geen letter/cijfer is wordt een streepje
+      .replace(/^-+|-+$/g, "") // geen streepjes aan begin/eind
+  }
+
   async function createEvent() {
     if (!name || !slug) return
 
     await supabase.from("events").insert({
       name,
-      slug,
+      slug: slugify(slug),
       status: "open",
       download_password: ""
     })
@@ -219,7 +228,7 @@ export default function AdminPage() {
       .from("events")
       .update({
         name: editing.name,
-        slug: editing.slug,
+        slug: slugify(editing.slug),
         download_password: editing.download_password || ""
       })
       .eq("id", editing.id)
@@ -368,6 +377,11 @@ export default function AdminPage() {
               Aanmaken
             </button>
           </div>
+          {slug && (
+            <p style={slugPreview}>
+              Link wordt: {BASE_URL}/event/{slugify(slug)}
+            </p>
+          )}
         </section>
 
         <section style={{ marginTop: 48 }}>
@@ -756,6 +770,12 @@ const newEventRow: CSSProperties = {
   display: "flex",
   gap: 12,
   flexWrap: "wrap"
+}
+
+const slugPreview: CSSProperties = {
+  fontSize: 12,
+  color: clay,
+  marginTop: 8
 }
 
 const inputStyle: CSSProperties = {
