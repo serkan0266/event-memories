@@ -27,14 +27,19 @@ const fraunces = Fraunces({
 });
 
 const inter = Inter({
-  variable: "--font-sans",
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "ShareMemories",
   description: "Deel en verzamel alle herinneringen van jouw event"
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
