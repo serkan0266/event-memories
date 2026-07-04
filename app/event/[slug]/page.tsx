@@ -136,20 +136,13 @@ export default function EventPage() {
   return (
     <div style={pageStyle}>
 
-      <div style={heroWrap}>
-        {headerUrl ? (
-          <>
-            <img src={headerUrl} style={heroImgBlurBg} alt="" />
-            <img src={headerUrl} style={heroImg} alt="" />
-          </>
-        ) : (
-          <div style={heroFallback} />
-        )}
-        <div style={heroOverlay} />
-        <h1 style={heroTitle}>{event.name}</h1>
-      </div>
-
       <div style={contentWrap}>
+
+        {headerUrl && (
+          <img src={headerUrl} style={heroImg} alt="" />
+        )}
+
+        <h1 style={heroTitle}>{event.name}</h1>
 
         {isClosed ? (
           <>
@@ -300,56 +293,20 @@ const pageStyle: CSSProperties = {
 
 /* ===== HERO ===== */
 
-const heroWrap: CSSProperties = {
-  position: "relative",
-  width: "100%",
-  height: 280,
-  overflow: "hidden"
-}
-
 const heroImg: CSSProperties = {
-  position: "relative",
   width: "100%",
-  height: "100%",
-  objectFit: "contain",
-  zIndex: 1
-}
-
-const heroImgBlurBg: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  filter: "blur(30px) brightness(0.7)",
-  transform: "scale(1.2)"
-}
-
-const heroFallback: CSSProperties = {
-  width: "100%",
-  height: "100%",
-  background: `linear-gradient(135deg, ${ink}, #3a352c)`
-}
-
-const heroOverlay: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "linear-gradient(180deg, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.55) 100%)"
+  borderRadius: 8,
+  marginBottom: 20,
+  display: "block"
 }
 
 const heroTitle: CSSProperties = {
-  position: "absolute",
-  bottom: 22,
-  left: 0,
-  right: 0,
-  textAlign: "center",
   fontFamily: serif,
-  color: "#fff",
+  color: ink,
   fontSize: 34,
   fontWeight: 500,
-  padding: "0 20px",
   margin: 0,
-  textShadow: "0 2px 12px rgba(0,0,0,0.3)"
+  marginBottom: 8
 }
 
 /* ===== CONTENT ===== */
@@ -357,7 +314,7 @@ const heroTitle: CSSProperties = {
 const contentWrap: CSSProperties = {
   maxWidth: 480,
   margin: "0 auto",
-  padding: "32px 20px 0",
+  padding: "24px 20px 0",
   textAlign: "center"
 }
 
