@@ -17,6 +17,7 @@ export default function EventPage() {
   const CLOUDINARY_UPLOAD_PRESET = "Events"
 
   const [event, setEvent] = useState<any>(null)
+  const [notFound, setNotFound] = useState(false)
   const [name, setName] = useState("")
   const [message, setMessage] = useState("")
 
@@ -59,8 +60,9 @@ export default function EventPage() {
       .eq("slug", slug)
       .single()
 
-    if (error) {
+    if (error || !data) {
       console.error("EVENT LOAD ERROR:", error)
+      setNotFound(true)
       return
     }
 
@@ -236,6 +238,19 @@ export default function EventPage() {
 
     setUploadingVideo(false)
     setVideoUploadDone(true)
+  }
+
+  if (notFound) {
+    return (
+      <div style={loadingWrap}>
+        <div style={{ textAlign: "center" }}>
+          <div style={loadingMark}>SM</div>
+          <p style={{ marginTop: 16, fontFamily: sans, color: clay, fontSize: 14 }}>
+            Dit event bestaat niet (meer). Controleer de link.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   if (!event) {
