@@ -272,8 +272,8 @@ export default function EventPage() {
           </>
         ) : (
           <>
-            <p style={introText}>
-              Alle momenten van deze speciale dag komen hier samen
+            <p style={{ ...introText, textWrap: "balance" } as CSSProperties}>
+              Alle momenten van deze speciale dag komen hier samen ❤️
             </p>
 
             <div style={formCard}>
