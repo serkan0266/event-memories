@@ -446,12 +446,13 @@ const heroImg: CSSProperties = {
 }
 
 const heroTitle: CSSProperties = {
-  fontFamily: serif,
+  fontFamily: 'var(--font-script), cursive',
   color: ink,
-  fontSize: 34,
-  fontWeight: 500,
+  fontSize: 52,
+  fontWeight: 400,
   margin: 0,
-  marginBottom: 8
+  marginBottom: 12,
+  lineHeight: 1.2
 }
 
 /* ===== CONTENT ===== */
