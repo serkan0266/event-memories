@@ -7,6 +7,7 @@ import AuthInit from "@/components/AuthInit";
 export const vibes = Great_Vibes({
   weight: "400",
   subsets: ["latin"],
+  variable: "--font-script",
 });
 
 const geistSans = Geist({
@@ -50,7 +51,7 @@ export default function RootLayout({
   return (
     <html
       lang="nl"
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${inter.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${inter.variable} ${vibes.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AuthInit />
