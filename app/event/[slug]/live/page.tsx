@@ -16,14 +16,23 @@ export default function LiveWall() {
   const BASE_URL = "https://app.sharememories.nl"
 
   const [event, setEvent] = useState<any>(null)
-  const [uploads, setUploads] = useState<any[]>([])
+  const [order, setOrder] = useState<any[]>([])
   const [index, setIndex] = useState(0)
 
-  const uploadsRef = useRef<any[]>([])
+  const orderRef = useRef<any[]>([])
 
   useEffect(() => {
-    uploadsRef.current = uploads
-  }, [uploads])
+    orderRef.current = order
+  }, [order])
+
+  function shuffle<T>(arr: T[]): T[] {
+    const a = [...arr]
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[a[i], a[j]] = [a[j], a[i]]
+    }
+    return a
+  }
 
   useEffect(() => {
     let channel: any = null
@@ -45,7 +54,7 @@ export default function LiveWall() {
         .eq("type", "image")
         .order("created_at", { ascending: true })
 
-      setUploads(data || [])
+      setOrder(shuffle(data || []))
 
       channel = supabase
         .channel(`live-wall-${eventData.id}`)
@@ -59,7 +68,13 @@ export default function LiveWall() {
           },
           (payload: any) => {
             if (payload.new?.type === "image") {
-              setUploads(prev => [...prev, payload.new])
+              setOrder(prev => {
+                // nieuwe foto op een willekeurige plek invoegen, niet altijd achteraan
+                const insertAt = Math.floor(Math.random() * (prev.length + 1))
+                const updated = [...prev]
+                updated.splice(insertAt, 0, payload.new)
+                return updated
+              })
             }
           }
         )
@@ -75,16 +90,16 @@ export default function LiveWall() {
 
   // Automatisch doorschuiven
   useEffect(() => {
-    if (uploads.length === 0) return
+    if (order.length === 0) return
 
     const timer = setInterval(() => {
-      setIndex(i => (i + 1) % uploadsRef.current.length)
+      setIndex(i => (i + 1) % orderRef.current.length)
     }, SLIDE_DURATION_MS)
 
     return () => clearInterval(timer)
-  }, [uploads.length])
+  }, [order.length])
 
-  const current = uploads[index]
+  const current = order[index]
   const eventUrl = event ? `${BASE_URL}/event/${event.slug}` : ""
 
   return (
@@ -101,7 +116,7 @@ export default function LiveWall() {
         }
       `}</style>
 
-      {uploads.length === 0 && event && (
+      {order.length === 0 && event && (
         <div style={welcomeWrap}>
           <div style={welcomeMark}>SM</div>
           <h1 style={welcomeTitle}>{event.name}</h1>
