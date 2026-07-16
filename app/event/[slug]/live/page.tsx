@@ -130,10 +130,13 @@ export default function LiveWall() {
           />
 
           {(current.name || current.message) && (
-            <div style={captionBox}>
-              {current.name && <div style={captionName}>{current.name}</div>}
-              {current.message && <div style={captionMessage}>{current.message}</div>}
-            </div>
+            <>
+              <div style={captionScrim} />
+              <div style={captionBox}>
+                {current.name && <div style={captionName}>{current.name}</div>}
+                {current.message && <div style={captionMessage}>{current.message}</div>}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -251,21 +254,34 @@ const slideImg: CSSProperties = {
 
 /* ===== CAPTION ===== */
 
+const captionScrim: CSSProperties = {
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  height: 220,
+  background: "linear-gradient(to top, rgba(0,0,0,0.75), transparent)",
+  zIndex: 2,
+  pointerEvents: "none"
+}
+
 const captionBox: CSSProperties = {
   position: "absolute",
   bottom: 48,
   left: 0,
   right: 0,
   textAlign: "center",
-  zIndex: 2,
-  animation: "sm-caption-in 0.6s ease"
+  zIndex: 3,
+  animation: "sm-caption-in 0.6s ease",
+  padding: "0 40px"
 }
 
 const captionName: CSSProperties = {
   fontFamily: serif,
   fontSize: 32,
+  fontWeight: 500,
   color: "#f5efe4",
-  textShadow: "0 2px 14px rgba(0,0,0,0.5)"
+  textShadow: "0 2px 14px rgba(0,0,0,0.6)"
 }
 
 const captionMessage: CSSProperties = {
