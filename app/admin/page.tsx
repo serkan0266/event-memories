@@ -477,6 +477,7 @@ export default function AdminPage() {
                     </div>
                     <div style={qrActions}>
                       <a href={url} target="_blank" style={ghostBtn}>Event openen</a>
+                      <a href={`${url}/live`} target="_blank" style={ghostBtn}>Live-muur openen</a>
                       <button onClick={() => downloadQR(e.slug)} style={ghostBtn}>
                         QR downloaden
                       </button>
