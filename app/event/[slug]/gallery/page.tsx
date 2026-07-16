@@ -33,7 +33,13 @@ export default function Gallery() {
   }, [])
 
   useEffect(() => {
-    document.body.style.overflow = viewer !== null ? "hidden" : "auto"
+    if (viewer !== null) {
+      document.body.style.overflow = "hidden"
+      document.documentElement.style.overscrollBehavior = "none"
+    } else {
+      document.body.style.overflow = "auto"
+      document.documentElement.style.overscrollBehavior = "auto"
+    }
   }, [viewer])
 
   // KEYBOARD
@@ -215,7 +221,12 @@ export default function Gallery() {
           {current.type === "video" ? (
             <video src={current.file_url} style={viewerMedia} controls autoPlay />
           ) : (
-            <img src={current.file_url} style={viewerMedia} alt="" />
+            <img
+              src={current.file_url}
+              style={viewerMedia}
+              alt=""
+              draggable={false}
+            />
           )}
 
           {(current.name || current.message) && (
@@ -348,7 +359,9 @@ const viewerOverlay: CSSProperties = {
   flexDirection: "column",
   justifyContent: "center",
   alignItems: "center",
-  zIndex: 999999
+  zIndex: 999999,
+  touchAction: "none",
+  overscrollBehavior: "none"
 }
 
 const viewerTopBar: CSSProperties = {
@@ -392,8 +405,11 @@ const arrowRight: CSSProperties = {
 const viewerMedia: CSSProperties = {
   maxWidth: "95%",
   maxHeight: "60vh",
-  borderRadius: 4
-}
+  borderRadius: 4,
+  userSelect: "none",
+  WebkitUserSelect: "none",
+  WebkitTouchCallout: "none"
+} as CSSProperties
 
 const viewerCaption: CSSProperties = {
   color: "#f5efe4",
