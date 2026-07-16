@@ -7,7 +7,6 @@ import QRCode from "react-qr-code"
 import type { CSSProperties } from "react"
 
 const SLIDE_DURATION_MS = 7000
-const TRANSITION_MS = 1200
 
 export default function LiveWall() {
 
@@ -19,12 +18,7 @@ export default function LiveWall() {
   const [event, setEvent] = useState<any>(null)
   const [uploads, setUploads] = useState<any[]>([])
   const [index, setIndex] = useState(0)
-  const [layers, setLayers] = useState([
-    { src: "", opacity: 0 },
-    { src: "", opacity: 0 },
-  ])
 
-  const activeLayer = useRef(0)
   const uploadsRef = useRef<any[]>([])
 
   useEffect(() => {
@@ -90,23 +84,6 @@ export default function LiveWall() {
     return () => clearInterval(timer)
   }, [uploads.length])
 
-  // Crossfade naar de nieuwe foto bij elke index-wissel
-  useEffect(() => {
-    const current = uploads[index]
-    if (!current) return
-
-    const next = activeLayer.current === 0 ? 1 : 0
-
-    setLayers(prev => {
-      const updated = [...prev]
-      updated[next] = { src: current.file_url, opacity: 1 }
-      updated[activeLayer.current] = { ...updated[activeLayer.current], opacity: 0 }
-      return updated
-    })
-
-    activeLayer.current = next
-  }, [index, uploads])
-
   const current = uploads[index]
   const eventUrl = event ? `${BASE_URL}/event/${event.slug}` : ""
 
@@ -117,6 +94,10 @@ export default function LiveWall() {
         @keyframes sm-caption-in {
           from { opacity: 0; transform: translateY(6px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes sm-slide-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
       `}</style>
 
@@ -131,26 +112,30 @@ export default function LiveWall() {
         </div>
       )}
 
-      {uploads.length > 0 && (
-        <>
-          {layers.map((layer, i) => (
-            <div key={i} style={{ ...layerWrap, opacity: layer.opacity }}>
-              {layer.src && (
-                <>
-                  <img src={layer.src} style={layerBlurBg} alt="" />
-                  <img src={layer.src} style={layerImg} alt="" />
-                </>
-              )}
-            </div>
-          ))}
+      {current && (
+        <div key={index} style={slideWrap}>
+          <img
+            src={current.file_url}
+            style={slideBlurBg}
+            alt=""
+            draggable={false}
+            onError={() => console.error("Live-muur: kon foto niet laden", current.file_url)}
+          />
+          <img
+            src={current.file_url}
+            style={slideImg}
+            alt=""
+            draggable={false}
+            onError={() => console.error("Live-muur: kon foto niet laden", current.file_url)}
+          />
 
-          {current && (current.name || current.message) && (
-            <div key={index} style={captionBox}>
+          {(current.name || current.message) && (
+            <div style={captionBox}>
               {current.name && <div style={captionName}>{current.name}</div>}
               {current.message && <div style={captionMessage}>{current.message}</div>}
             </div>
           )}
-        </>
+        </div>
       )}
 
       {event && (
@@ -235,28 +220,31 @@ const qrBoxLarge: CSSProperties = {
   borderRadius: 6
 }
 
-/* ===== SLIDESHOW LAYERS ===== */
+/* ===== SLIDESHOW ===== */
 
-const layerWrap: CSSProperties = {
+const slideWrap: CSSProperties = {
   position: "absolute",
   inset: 0,
-  transition: `opacity ${TRANSITION_MS}ms ease`
+  animation: "sm-slide-in 900ms ease"
 }
 
-const layerBlurBg: CSSProperties = {
+const slideBlurBg: CSSProperties = {
   position: "absolute",
   inset: 0,
   width: "100%",
   height: "100%",
+  display: "block",
   objectFit: "cover",
   filter: "blur(40px) brightness(0.55)",
   transform: "scale(1.2)"
 }
 
-const layerImg: CSSProperties = {
-  position: "relative",
+const slideImg: CSSProperties = {
+  position: "absolute",
+  inset: 0,
   width: "100%",
   height: "100%",
+  display: "block",
   objectFit: "contain",
   zIndex: 1
 }
